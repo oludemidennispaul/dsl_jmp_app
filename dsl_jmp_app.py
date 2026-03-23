@@ -259,6 +259,25 @@ section[data-testid="stSidebar"] .nav-active .stButton>button {
 .file-pill    { display:flex;align-items:center;gap:8px;padding:9px 12px;border-radius:9px;
                 margin-bottom:6px;font-size:12.5px;font-weight:600; }
 .file-pill.ok { background:#f0fdf6;border:1.5px solid #a7f3d0;color:#065f46; }
+/* Force expander to white in all environments */
+div[data-testid="stExpander"] {
+    background:#ffffff !important;
+    border:1.5px solid #e8edf8 !important;
+    border-radius:10px !important;
+}
+div[data-testid="stExpander"] summary {
+    color:#111827 !important;
+    background:#ffffff !important;
+}
+div[data-testid="stExpander"] summary:hover {
+    background:#f8faff !important;
+}
+div[data-testid="stExpander"] summary span {
+    color:#111827 !important;
+}
+div[data-testid="stExpander"] > div {
+    background:#ffffff !important;
+}
 .file-pill.pending { background:#f8faff;border:1.5px solid #dde4f5;color:#6b7a99; }
 .kpi-card  { background:#fff;border:1.5px solid #e8edf8;border-radius:13px;padding:16px 18px; }
 .kpi-label { font-size:10.5px;color:#a0abbe;font-weight:700;margin-bottom:7px;
