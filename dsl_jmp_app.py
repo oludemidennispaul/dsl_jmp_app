@@ -531,22 +531,17 @@ if page == "Build my JMP":
         </div>
     </div>""", unsafe_allow_html=True)
 
-    # ── Step segmented control (pure HTML <a> links) ──
-    def _sbtn(label, val, cur):
-        a = ("background:#1a3fc4;color:#fff;font-weight:700;box-shadow:0 1px 6px rgba(26,63,196,0.25);"
-             if cur==val else "background:transparent;color:#6b7a99;font-weight:500;")
-        return (f'<a href="?build_step={val}" target="_self" style="flex:1;padding:9px 10px;'
-                f'border:none;border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit;'
-                f'text-decoration:none;text-align:center;display:block;{a}">{label}</a>')
-    st.markdown(
-        '<div style="display:flex;background:#eef2ff;border:1.5px solid #c8d3ee;'
-        'border-radius:12px;padding:4px;gap:3px;max-width:680px;">'
-        + _sbtn("⚙️  Parameters",   1, step)
-        + _sbtn("📂  Upload Files",  2, step)
-        + _sbtn("▶  Run Simulation", 3, step)
-        + '</div>',
-        unsafe_allow_html=True
-    )
+    # ── Step segmented control (st.button — no page reload) ────────────────
+    _sc1, _sc2, _sc3 = st.columns(3, gap="small")
+    _step_labels = {1:"⚙️  Parameters", 2:"📂  Upload Files", 3:"▶  Run Simulation"}
+    for _sval, _scol in zip([1,2,3], [_sc1,_sc2,_sc3]):
+        with _scol:
+            _sa = "background:#1a3fc4!important;color:#fff!important;font-weight:700!important;" if step==_sval else ""
+            st.markdown(f'<style>.sbtn{_sval} button{{{_sa}border-radius:10px!important;}}</style>', unsafe_allow_html=True)
+            st.markdown(f'<div class="sbtn{_sval}">', unsafe_allow_html=True)
+            if st.button(_step_labels[_sval], key=f"_sbtn{_sval}", use_container_width=True):
+                st.session_state.build_step = _sval; st.rerun()
+            st.markdown("</div>", unsafe_allow_html=True)
     st.markdown("<br>", unsafe_allow_html=True)
 
     # ── STEP 1: PARAMETERS ───────────────────────────────────────────────────
@@ -554,21 +549,20 @@ if page == "Build my JMP":
         # Sub-tab segmented control (pure HTML <a> links)
         PTABS = ["🗓️ Simulation","🚢 Mother Vessels","🛥️ Shuttle Vessels","🏭 Storages","🔄 Roving Storage","📋 Prescribed Events"]
         cur_pt = st.session_state.param_tab
-        def _ptbtn(lbl, cur):
-            a = ("background:#1a3fc4;color:#fff;font-weight:700;box-shadow:0 1px 6px rgba(26,63,196,0.25);"
-                 if cur==lbl else "background:transparent;color:#6b7a99;font-weight:500;")
-            enc = _ulp.quote(lbl)
-            return (f'<a href="?param_tab={enc}" target="_self" style="flex:1;padding:8px 4px;'
-                    f'border:none;border-radius:8px;font-size:12px;cursor:pointer;font-family:inherit;'
-                    f'text-decoration:none;text-align:center;display:block;{a}">{lbl}</a>')
-        st.markdown(
-            '<div style="display:flex;background:#eef2ff;border:1.5px solid #c8d3ee;border-radius:12px;padding:4px;gap:2px;">'
-            + "".join(_ptbtn(l, cur_pt) for l in PTABS)
-            + '</div>',
-            unsafe_allow_html=True
-        )
+        # Use st.button for param tabs — href links cause full page reload losing widget state
+        _pt_cols = st.columns(len(PTABS), gap="small")
+        for _pti, (_ptc, _ptl) in enumerate(zip(_pt_cols, PTABS)):
+            with _ptc:
+                _is_active = cur_pt == _ptl
+                _pt_style = "background:#1a3fc4;color:#fff;font-weight:700;" if _is_active else "background:#eef2ff;color:#6b7a99;"
+                _ptk = f"ptbtn_{_pti}"
+                st.markdown(f'<style>div[data-testid="column"]:nth-child({_pti+1}) .ptab-wrap button{{border-radius:8px!important;font-size:11px!important;{_pt_style}}}</style>', unsafe_allow_html=True)
+                st.markdown('<div class="ptab-wrap">', unsafe_allow_html=True)
+                if st.button(_ptl, key=_ptk, use_container_width=True):
+                    st.session_state.param_tab = _ptl; st.rerun()
+                st.markdown('</div>', unsafe_allow_html=True)
         st.markdown("<br>", unsafe_allow_html=True)
-        pt = cur_pt
+        pt = st.session_state.param_tab
 
         # ── Simulation ──────────────────────────────────────────────────────
         if pt == "🗓️ Simulation":
