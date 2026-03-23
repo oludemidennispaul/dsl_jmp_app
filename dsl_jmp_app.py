@@ -85,7 +85,15 @@ st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800&display=swap');
 html,body,[class*="css"]{font-family:'DM Sans',sans-serif;}
-#MainMenu,footer,header{visibility:hidden;}
+#MainMenu,footer,header{visibility:hidden;height:0;min-height:0;}
+/* Hide Streamlit top toolbar and decoration completely */
+[data-testid="stToolbar"]{display:none!important;}
+[data-testid="stDecoration"]{display:none!important;}
+[data-testid="stHeader"]{display:none!important;height:0!important;}
+[data-testid="stStatusWidget"]{display:none!important;}
+iframe[title="st_connection_status.iframe"]{display:none!important;}
+div[class*="StatusWidget"]{display:none!important;}
+header[data-testid="stHeader"]{display:none!important;height:0!important;min-height:0!important;}
 .block-container{padding:0.2rem 1.5rem 1rem!important;max-width:100%!important;}
 /* Remove Streamlit's default large top gap on deployed apps */
 div[data-testid="stMainBlockContainer"]{padding-top:0.2rem!important;margin-top:0!important;}
