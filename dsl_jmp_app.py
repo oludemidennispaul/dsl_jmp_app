@@ -86,14 +86,16 @@ st.markdown("""
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800&display=swap');
 html,body,[class*="css"]{font-family:'DM Sans',sans-serif;}
 #MainMenu,footer,header{visibility:hidden;}
-.block-container{padding:0.5rem 1.5rem 1rem!important;max-width:100%!important;}
+.block-container{padding:0.2rem 1.5rem 1rem!important;max-width:100%!important;}
 /* Remove Streamlit's default large top gap on deployed apps */
-div[data-testid="stMainBlockContainer"]{padding-top:0.5rem!important;}
-div[data-testid="stAppViewBlockContainer"]{padding-top:0.5rem!important;}
-div[data-testid="block-container"]{padding-top:0.5rem!important;}
-section.main > div:first-child{padding-top:0!important;}
-section.main .block-container{padding-top:0.5rem!important;}
-/* Hide the blank space Streamlit adds before first element */
+div[data-testid="stMainBlockContainer"]{padding-top:0.2rem!important;margin-top:0!important;}
+div[data-testid="stAppViewBlockContainer"]{padding-top:0.2rem!important;margin-top:0!important;}
+div[data-testid="block-container"]{padding-top:0.2rem!important;margin-top:0!important;}
+section.main > div:first-child{padding-top:0!important;margin-top:0!important;}
+section.main .block-container{padding-top:0.2rem!important;margin-top:0!important;}
+section.main{padding-top:0!important;}
+.appview-container .main .block-container{padding-top:0.2rem!important;}
+div[data-testid="stVerticalBlock"]{gap:0.4rem!important;}
 div[data-testid="stVerticalBlock"] > div:first-child > div[data-testid="stMarkdownContainer"]:empty{display:none;}
 
 /* ── Main area background ── */
