@@ -1268,7 +1268,24 @@ elif page == "Dashboard":
             show = [c for c in ["Injection No","Vessel","MonthLabel","Total Quantity",
                                  "NEPL","Third Party","Final Ullage",
                                  "SBM Discharge Day 2","SBM Discharge Day 3"] if c in inj_df.columns]
-            st.dataframe(inj_df[show].reset_index(drop=True), use_container_width=True, height=300)
+            _inj_disp = inj_df[show].copy()
+            # Format date columns — remove 00:00:00 timestamp
+            for _dc in ["Final Ullage","SBM Discharge Day 2","SBM Discharge Day 3"]:
+                if _dc in _inj_disp.columns:
+                    _inj_disp[_dc] = _inj_disp[_dc].apply(
+                        lambda x: str(x)[:10] if pd.notna(x) else "")
+            _inj_html = _inj_disp.reset_index(drop=True).to_html(index=False, border=0, classes="inj-log-tbl")
+            st.markdown(
+                """<style>
+                .inj-log-tbl{border-collapse:collapse;width:100%;font-size:13px;color:#111827;}
+                .inj-log-tbl th{background:#1a3fc4;color:#fff;padding:9px 14px;text-align:left;
+                    font-weight:600;white-space:nowrap;}
+                .inj-log-tbl td{padding:8px 14px;border-bottom:1px solid #e8edf8;
+                    color:#111827;background:#fff;white-space:nowrap;}
+                .inj-log-tbl tr:nth-child(even) td{background:#f8faff;}
+                .inj-log-tbl tr:hover td{background:#eef2ff;}
+                </style>""" + f'<div style="overflow-x:auto;max-height:320px;overflow-y:auto;border-radius:10px;border:1.5px solid #e8edf8;">{_inj_html}</div>',
+                unsafe_allow_html=True)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
