@@ -554,37 +554,58 @@ if page == "Build my JMP":
         </div>
     </div>""", unsafe_allow_html=True)
 
-    # ── Step segmented control (st.button — no page reload) ────────────────
-    _sc1, _sc2, _sc3 = st.columns(3, gap="small")
+    # ── Step segmented control — toggle style ───────────────────────────────
+    st.markdown("""<style>
+    .seg-wrap{background:#eef2ff;border:1.5px solid #c8d3ee;border-radius:14px;
+              padding:4px;display:flex;gap:3px;max-width:660px;}
+    .seg-wrap .stButton>button{border:none!important;border-radius:10px!important;
+              padding:9px 10px!important;font-size:13px!important;width:100%!important;
+              transition:all 0.15s ease!important;}
+    .seg-active .stButton>button{background:#1a3fc4!important;color:#fff!important;
+              font-weight:700!important;box-shadow:0 1px 6px rgba(26,63,196,0.25)!important;}
+    .seg-inactive .stButton>button{background:transparent!important;color:#6b7a99!important;
+              font-weight:500!important;}
+    .seg-inactive .stButton>button:hover{background:#dde4f5!important;color:#1a3fc4!important;}
+    </style>""", unsafe_allow_html=True)
+    st.markdown('<div class="seg-wrap">', unsafe_allow_html=True)
     _step_labels = {1:"⚙️  Parameters", 2:"📂  Upload Files", 3:"▶  Run Simulation"}
+    _sc1, _sc2, _sc3 = st.columns(3, gap="small")
     for _sval, _scol in zip([1,2,3], [_sc1,_sc2,_sc3]):
         with _scol:
-            _sa = "background:#1a3fc4!important;color:#fff!important;font-weight:700!important;" if step==_sval else ""
-            st.markdown(f'<style>.sbtn{_sval} button{{{_sa}border-radius:10px!important;}}</style>', unsafe_allow_html=True)
-            st.markdown(f'<div class="sbtn{_sval}">', unsafe_allow_html=True)
+            _cls = "seg-active" if step==_sval else "seg-inactive"
+            st.markdown(f'<div class="{_cls}">', unsafe_allow_html=True)
             if st.button(_step_labels[_sval], key=f"_sbtn{_sval}", use_container_width=True):
                 st.session_state.build_step = _sval; st.rerun()
             st.markdown("</div>", unsafe_allow_html=True)
-    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("</div><br>", unsafe_allow_html=True)
 
     # ── STEP 1: PARAMETERS ───────────────────────────────────────────────────
     if step == 1:
         # Sub-tab segmented control (pure HTML <a> links)
         PTABS = ["🗓️ Simulation","🚢 Mother Vessels","🛥️ Shuttle Vessels","🏭 Storages","🔄 Roving Storage","📋 Prescribed Events"]
         cur_pt = st.session_state.param_tab
-        # Use st.button for param tabs — href links cause full page reload losing widget state
+        st.markdown("""<style>
+        .ptab-wrap{background:#eef2ff;border:1.5px solid #c8d3ee;border-radius:12px;
+                  padding:4px;display:flex;gap:2px;}
+        .ptab-wrap .stButton>button{border:none!important;border-radius:8px!important;
+                  padding:8px 4px!important;font-size:12px!important;width:100%!important;
+                  transition:all 0.15s ease!important;}
+        .ptab-active .stButton>button{background:#1a3fc4!important;color:#fff!important;
+                  font-weight:700!important;box-shadow:0 1px 4px rgba(26,63,196,0.2)!important;}
+        .ptab-inactive .stButton>button{background:transparent!important;color:#6b7a99!important;
+                  font-weight:500!important;}
+        .ptab-inactive .stButton>button:hover{background:#dde4f5!important;color:#1a3fc4!important;}
+        </style>""", unsafe_allow_html=True)
+        st.markdown('<div class="ptab-wrap">', unsafe_allow_html=True)
         _pt_cols = st.columns(len(PTABS), gap="small")
         for _pti, (_ptc, _ptl) in enumerate(zip(_pt_cols, PTABS)):
             with _ptc:
-                _is_active = cur_pt == _ptl
-                _pt_style = "background:#1a3fc4;color:#fff;font-weight:700;" if _is_active else "background:#eef2ff;color:#6b7a99;"
-                _ptk = f"ptbtn_{_pti}"
-                st.markdown(f'<style>div[data-testid="column"]:nth-child({_pti+1}) .ptab-wrap button{{border-radius:8px!important;font-size:11px!important;{_pt_style}}}</style>', unsafe_allow_html=True)
-                st.markdown('<div class="ptab-wrap">', unsafe_allow_html=True)
-                if st.button(_ptl, key=_ptk, use_container_width=True):
+                _cls = "ptab-active" if cur_pt == _ptl else "ptab-inactive"
+                st.markdown(f'<div class="{_cls}">', unsafe_allow_html=True)
+                if st.button(_ptl, key=f"ptbtn_{_pti}", use_container_width=True):
                     st.session_state.param_tab = _ptl; st.rerun()
-                st.markdown('</div>', unsafe_allow_html=True)
-        st.markdown("<br>", unsafe_allow_html=True)
+                st.markdown("</div>", unsafe_allow_html=True)
+        st.markdown("</div><br>", unsafe_allow_html=True)
         pt = st.session_state.param_tab
 
         # ── Simulation ──────────────────────────────────────────────────────
