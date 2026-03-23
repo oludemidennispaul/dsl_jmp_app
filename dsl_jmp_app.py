@@ -1164,7 +1164,9 @@ elif page == "Dashboard":
                         xaxis_title="", yaxis_title="Volume (bbls)",
                         legend=dict(orientation="h", y=-0.25),
                         paper_bgcolor="#ffffff", plot_bgcolor="#ffffff",
-                        font=dict(color="#111827"))
+                        font=dict(color="#111827"),
+                        xaxis=dict(color="#111827",gridcolor="#e2e8f0",linecolor="#cbd5e1",tickfont=dict(color="#111827")),
+                        yaxis=dict(color="#111827",gridcolor="#e2e8f0",linecolor="#cbd5e1",tickfont=dict(color="#111827")))
                     st.plotly_chart(fig, use_container_width=True)
                 except ImportError:
                     st.warning("Run: pip install plotly")
@@ -1183,7 +1185,9 @@ elif page == "Dashboard":
                         xaxis_title="", yaxis_title="Volume (bbls)",
                         xaxis_tickangle=-30,
                         paper_bgcolor="#ffffff", plot_bgcolor="#ffffff",
-                        font=dict(color="#111827"))
+                        font=dict(color="#111827"),
+                        xaxis=dict(color="#111827",gridcolor="#e2e8f0",linecolor="#cbd5e1",tickfont=dict(color="#111827")),
+                        yaxis=dict(color="#111827",gridcolor="#e2e8f0",linecolor="#cbd5e1",tickfont=dict(color="#111827")))
                     st.plotly_chart(fig2, use_container_width=True)
                 except ImportError:
                     pass
@@ -1211,7 +1215,9 @@ elif page == "Dashboard":
                     xaxis_title="", yaxis_title="Stock (bbls)",
                     legend=dict(orientation="h", y=-0.2),
                     paper_bgcolor="#ffffff", plot_bgcolor="#ffffff",
-                    font=dict(color="#111827"))
+                    font=dict(color="#111827"),
+                    xaxis=dict(color="#111827",gridcolor="#e2e8f0",linecolor="#cbd5e1",tickfont=dict(color="#111827")),
+                    yaxis=dict(color="#111827",gridcolor="#e2e8f0",linecolor="#cbd5e1",tickfont=dict(color="#111827")))
                 st.plotly_chart(fig3, use_container_width=True)
             except ImportError:
                 pass
@@ -1507,7 +1513,11 @@ elif page == "Monte Carlo":
                 xaxis_title="Weighted Score", yaxis_title="Count",
                 showlegend=False,
                 paper_bgcolor="#ffffff", plot_bgcolor="#ffffff",
-                font=dict(color="#111827"))
+                font=dict(color="#111827"),
+                xaxis=dict(color="#111827", gridcolor="#e2e8f0", linecolor="#cbd5e1",
+                           title_font=dict(color="#111827"), tickfont=dict(color="#111827")),
+                yaxis=dict(color="#111827", gridcolor="#e2e8f0", linecolor="#cbd5e1",
+                           title_font=dict(color="#111827"), tickfont=dict(color="#111827")))
             st.plotly_chart(fig_dist, use_container_width=True)
         except ImportError:
             pass
@@ -1530,7 +1540,18 @@ elif page == "Monte Carlo":
                 "Mother Balance":   f"{k['mother_balance']:.3f}",
                 "Shuttle Vol":      f"{k['shuttle_vol']:,}",
             })
-        st.dataframe(pd.DataFrame(_cmp_rows).set_index("Rank"), use_container_width=True)
+        _cmp_df = pd.DataFrame(_cmp_rows)
+        _cmp_html = _cmp_df.to_html(index=False, border=0, classes="cmp-tbl")
+        st.markdown("""<style>
+            .cmp-tbl{border-collapse:collapse;width:100%;font-size:13px;color:#111827;}
+            .cmp-tbl th{background:#1a3fc4;color:#fff;padding:9px 14px;text-align:left;
+                font-weight:600;white-space:nowrap;}
+            .cmp-tbl td{padding:8px 14px;border-bottom:1px solid #e8edf8;
+                color:#111827;background:#fff;white-space:nowrap;}
+            .cmp-tbl tr:nth-child(even) td{background:#f8faff;}
+            .cmp-tbl tr:hover td{background:#eef2ff;}
+            </style>""" + f'<div style="overflow-x:auto;border-radius:10px;border:1.5px solid #e8edf8;">{_cmp_html}</div>',
+            unsafe_allow_html=True)
 
         # ── Overlay chart: NEPL per run, top 5 highlighted ────────────────────
         st.markdown("<br>", unsafe_allow_html=True)
@@ -1549,10 +1570,18 @@ elif page == "Monte Carlo":
                     mode="markers+text", name=f"Rank {ri+1}",
                     marker=dict(color=RANK_COLORS[ri], size=12, symbol="star"),
                     text=[f"#{ri+1}"], textposition="top center"))
-            fig_ov.update_layout(title="NEPL Volume across all runs (top 5 highlighted)",
+            fig_ov.update_layout(
+                title="NEPL Volume across all runs (top 5 highlighted)",
                 height=300, margin=dict(l=10,r=10,t=40,b=20),
-                xaxis_title="Run #", yaxis_title="NEPL Volume (bbls)")
-            fig_ov.update_layout(paper_bgcolor="#ffffff", plot_bgcolor="#ffffff", font=dict(color="#111827"))
+                xaxis_title="Run #", yaxis_title="NEPL Volume (bbls)",
+                paper_bgcolor="#ffffff", plot_bgcolor="#ffffff",
+                font=dict(color="#111827"),
+                xaxis=dict(color="#111827", gridcolor="#e2e8f0", linecolor="#cbd5e1",
+                           title_font=dict(color="#111827"), tickfont=dict(color="#111827")),
+                yaxis=dict(color="#111827", gridcolor="#e2e8f0", linecolor="#cbd5e1",
+                           title_font=dict(color="#111827"), tickfont=dict(color="#111827")),
+                legend=dict(font=dict(color="#111827"), bgcolor="#ffffff",
+                            bordercolor="#e2e8f0", borderwidth=1))
             st.plotly_chart(fig_ov, use_container_width=True)
         except ImportError:
             pass
@@ -1564,7 +1593,14 @@ elif page == "Monte Carlo":
                  "% of Total": f"{100*v/sum(weights.values()):.0f}%" if sum(weights.values()) > 0 else "0%"}
                 for k, v in weights.items()
             ])
-            st.dataframe(_wdf, use_container_width=True, hide_index=True)
+            _w_html = _wdf.to_html(index=False, border=0, classes="wgt-tbl")
+            st.markdown("""<style>
+                .wgt-tbl{border-collapse:collapse;width:100%;font-size:13px;color:#111827;}
+                .wgt-tbl th{background:#1a3fc4;color:#fff;padding:8px 14px;text-align:left;font-weight:600;}
+                .wgt-tbl td{padding:7px 14px;border-bottom:1px solid #e8edf8;color:#111827;background:#fff;}
+                .wgt-tbl tr:nth-child(even) td{background:#f8faff;}
+                </style>""" + f'<div style="overflow-x:auto;">{_w_html}</div>',
+                unsafe_allow_html=True)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
