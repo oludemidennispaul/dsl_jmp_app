@@ -259,6 +259,12 @@ section[data-testid="stSidebar"] .nav-active .stButton>button {
 .file-pill    { display:flex;align-items:center;gap:8px;padding:9px 12px;border-radius:9px;
                 margin-bottom:6px;font-size:12.5px;font-weight:600; }
 .file-pill.ok { background:#f0fdf6;border:1.5px solid #a7f3d0;color:#065f46; }
+/* Force progress bar text dark */
+div[data-testid="stProgressBar"] > div > p,
+div[data-testid="stProgressBar"] p,
+div[class*="stProgress"] p {
+    color: #111827 !important;
+}
 /* Force all form labels dark */
 div[data-testid="stForm"] label,
 div[data-testid="column"] label,
@@ -1199,7 +1205,9 @@ elif page == "Dashboard":
                     fig.update_layout(barmode="stack", height=360,
                         margin=dict(l=10,r=10,t=40,b=40),
                         xaxis_title="", yaxis_title="Volume (bbls)",
-                        legend=dict(orientation="h", y=-0.25),
+                        legend=dict(orientation="h", y=-0.25,
+                            font=dict(color="#111827"), bgcolor="#ffffff",
+                            title=dict(font=dict(color="#111827"))),
                         paper_bgcolor="#ffffff", plot_bgcolor="#ffffff",
                         font=dict(color="#111827"),
                         title_font=dict(color="#111827", size=14),
@@ -1252,7 +1260,9 @@ elif page == "Dashboard":
                 fig3.update_layout(title="Mother Vessel Stock Over Time", title_font=dict(color="#111827", size=14),
                     height=320, margin=dict(l=10,r=10,t=40,b=20),
                     xaxis_title="", yaxis_title="Stock (bbls)",
-                    legend=dict(orientation="h", y=-0.2),
+                    legend=dict(orientation="h", y=-0.2,
+                        font=dict(color="#111827"), bgcolor="#ffffff",
+                        title=dict(font=dict(color="#111827"))),
                     paper_bgcolor="#ffffff", plot_bgcolor="#ffffff",
                     font=dict(color="#111827"),
                     xaxis=dict(color="#111827",gridcolor="#e2e8f0",linecolor="#cbd5e1",tickfont=dict(color="#111827")),
