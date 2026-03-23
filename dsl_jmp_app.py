@@ -269,8 +269,8 @@ section[data-testid="stSidebar"] .nav-active .stButton>button {
 [data-baseweb="popover"],[data-baseweb="menu"] { background: #ffffff !important; }
 
 /* page text */
-.page-title    { font-size:28px;font-weight:800;color:#0d1b6e;letter-spacing:-0.5px;margin-bottom:2px;margin-top:0!important;padding-top:0!important; }
-.page-subtitle { font-size:12.5px;color:#6b7a99;margin-bottom:10px; }
+.page-title    { font-size:32px;font-weight:800;color:#0d1b6e;letter-spacing:-0.7px;margin-bottom:3px;margin-top:0!important;padding-top:0!important; }
+.page-subtitle { font-size:13.5px;color:#6b7a99;margin-bottom:22px; }
 .sec-title     { font-size:10.5px;font-weight:800;letter-spacing:1.1px;color:#1a3fc4;
                  text-transform:uppercase;margin-bottom:14px;display:flex;align-items:center;gap:7px; }
 .sec-title span{ display:inline-flex;align-items:center;justify-content:center;
