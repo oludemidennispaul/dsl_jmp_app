@@ -1307,8 +1307,16 @@ elif page == "Simulation Table":
                   .format(na_rep="")
                   .hide(axis="index"))
 
+        sim_table_css = """<style>
+            .sim-tbl-wrap table{border-collapse:collapse;width:max-content;font-size:12px;}
+            .sim-tbl-wrap th{background:#1a3fc4!important;color:#fff!important;padding:7px 10px;
+                text-align:center;font-weight:600;white-space:nowrap;position:sticky;top:0;z-index:2;}
+            .sim-tbl-wrap td{padding:6px 10px;text-align:center;border:1px solid #e2e8f0;
+                white-space:nowrap;color:#111827;}
+            .sim-tbl-wrap tr:nth-child(even) td{filter:brightness(0.97);}
+            </style>"""
         st.markdown(
-            '<div style="overflow-x:auto;border-radius:12px;border:1.5px solid #e8edf8;">',
+            sim_table_css + '<div class="sim-tbl-wrap" style="overflow-x:auto;border-radius:12px;border:1.5px solid #e8edf8;">',
             unsafe_allow_html=True)
         st.write(styled.to_html(), unsafe_allow_html=True)
         st.markdown("</div>", unsafe_allow_html=True)
@@ -1360,8 +1368,15 @@ elif page == "Summary":
         if summary_html:
             st.markdown("<br>", unsafe_allow_html=True)
             st.markdown('<div class="sec-title"><span>I</span> Injection Tables by Month</div>', unsafe_allow_html=True)
+            inj_css = """<style>
+                .inj-wrap table{border-collapse:collapse;width:max-content;font-size:13px;color:#111827;}
+                .inj-wrap th{background:#1a3fc4;color:#fff;padding:8px 14px;text-align:center;font-weight:600;white-space:nowrap;}
+                .inj-wrap td{padding:7px 14px;text-align:center;border:1px solid #e2e8f0;color:#111827;white-space:nowrap;background:#fff;}
+                .inj-wrap tr:nth-child(even) td{background:#f8faff;}
+                .inj-wrap h3{font-size:17px;font-weight:700;color:#1a3fc4;margin:20px 0 10px;}
+                </style>"""
             st.markdown(
-                f'<div style="background:#fff;border:1.5px solid #e8edf8;border-radius:14px;'                f'padding:20px 24px;overflow-x:auto;font-family:DM Sans,sans-serif;">{summary_html}</div>',
+                inj_css + f'<div class="inj-wrap" style="background:#fff;border:1.5px solid #e8edf8;border-radius:14px;padding:20px 24px;overflow-x:auto;">{summary_html}</div>',
                 unsafe_allow_html=True)
 
         # ── Downloads ──────────────────────────────────────────────────────────
@@ -1490,7 +1505,9 @@ elif page == "Monte Carlo":
                     annotation_text=f"#{i+1}", annotation_position="top")
             fig_dist.update_layout(height=280, margin=dict(l=10,r=10,t=40,b=20),
                 xaxis_title="Weighted Score", yaxis_title="Count",
-                showlegend=False)
+                showlegend=False,
+                paper_bgcolor="#ffffff", plot_bgcolor="#ffffff",
+                font=dict(color="#111827"))
             st.plotly_chart(fig_dist, use_container_width=True)
         except ImportError:
             pass
