@@ -506,7 +506,7 @@ if "param_tab" in _qp:
     st.query_params.clear(); st.rerun()
 
 page = st.session_state.page
-st.markdown('<div style="padding:2rem 2.6rem 3rem;">', unsafe_allow_html=True)
+st.markdown('<div style="padding:0.3rem 2.0rem 2rem;">', unsafe_allow_html=True)
 
 # Handle tab navigation via query params
 import urllib.parse as _ulp
@@ -523,7 +523,7 @@ if "param_tab" in _qp:
     st.query_params.clear(); st.rerun()
 
 page = st.session_state.page
-st.markdown('<div style="padding:2rem 2.6rem 3rem;">', unsafe_allow_html=True)
+st.markdown('<div style="padding:0.3rem 2.0rem 2rem;">', unsafe_allow_html=True)
 
 # ════════════════════════════════════════════════════════════════════════
 # BUILD MY JMP
