@@ -1377,7 +1377,19 @@ elif page == "Summary":
             disp.columns = ["Month","Total Volume (bbls)","NEPL (bbls)","3rd Party (bbls)","Trips"]
             for c in ["Total Volume (bbls)","NEPL (bbls)","3rd Party (bbls)"]:
                 disp[c] = disp[c].apply(lambda x: f"{int(x):,}" if pd.notna(x) else "")
-            st.dataframe(disp.reset_index(drop=True), use_container_width=True)
+            _h = disp.to_html(index=False, border=0, classes="sum-tbl")
+            _sum_css = (
+                "<style>.sum-tbl{border-collapse:collapse;width:100%;font-size:13px;color:#111827;}"
+                ".sum-tbl th{background:#1a3fc4;color:#fff;padding:9px 14px;text-align:left;"
+                "font-weight:600;white-space:nowrap;}"
+                ".sum-tbl td{padding:8px 14px;border-bottom:1px solid #e8edf8;"
+                "color:#111827;background:#fff;white-space:nowrap;}"
+                ".sum-tbl tr:nth-child(even) td{background:#f8faff;}"
+                ".sum-tbl tr:hover td{background:#eef2ff;}</style>"
+            )
+            st.markdown(
+                _sum_css + f'<div style="overflow-x:auto;border-radius:10px;border:1.5px solid #e8edf8;">{_h}</div>',
+                unsafe_allow_html=True)
 
         # ── By mother vessel ───────────────────────────────────────────────────
         if monthly_mother is not None and not monthly_mother.empty:
@@ -1387,7 +1399,8 @@ elif page == "Summary":
             disp2.columns = ["Month","Vessel","Total Volume","NEPL","3rd Party","Trips"]
             for c in ["Total Volume","NEPL","3rd Party"]:
                 disp2[c] = disp2[c].apply(lambda x: f"{int(x):,}" if pd.notna(x) else "")
-            st.dataframe(disp2.reset_index(drop=True), use_container_width=True)
+            _h2 = disp2.to_html(index=False, border=0, classes="sum-tbl")
+            st.markdown(f'<div style="overflow-x:auto;border-radius:10px;border:1.5px solid #e8edf8;">{_h2}</div>', unsafe_allow_html=True)
 
         # ── Injection tables HTML ──────────────────────────────────────────────
         if summary_html:
