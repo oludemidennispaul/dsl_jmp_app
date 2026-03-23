@@ -1156,7 +1156,7 @@ elif page == "Dashboard":
                     fig = px.bar(
                         monthly_mother.sort_values("MonthStart"),
                         x="MonthLabel", y="Total_Volume", color="Vessel",
-                        title="Monthly Discharge Volume by Mother Vessel",
+                        title=dict(text="Monthly Discharge Volume by Mother Vessel", font=dict(color="#111827", size=14)),
                         color_discrete_map={"Bryanston":"#111827","Alkebulan":"#EF553B","Green Eagle":"#636EFA"},
                     )
                     fig.update_layout(barmode="stack", height=360,
@@ -1179,7 +1179,7 @@ elif page == "Dashboard":
                         .groupby("vessel", as_index=False)["volume"].sum()
                         .sort_values("volume", ascending=False))
                     fig2 = px.bar(shuttle_agg, x="vessel", y="volume",
-                        title="Total Volume Discharged by Shuttle Vessel",
+                        title=dict(text="Total Volume Discharged by Shuttle Vessel", font=dict(color="#111827", size=14)),
                         color_discrete_sequence=["#111827"])
                     fig2.update_layout(height=360, margin=dict(l=10,r=10,t=40,b=80),
                         xaxis_title="", yaxis_title="Volume (bbls)",
@@ -1210,7 +1210,7 @@ elif page == "Dashboard":
                             fig3.add_hline(y=cap, line_dash="dot", line_color=col,
                                            annotation_text=f"{mname} cap", annotation_position="right",
                                            line_width=1, opacity=0.5)
-                fig3.update_layout(title="Mother Vessel Stock Over Time",
+                fig3.update_layout(title=dict(text="Mother Vessel Stock Over Time", font=dict(color="#111827", size=14)),
                     height=320, margin=dict(l=10,r=10,t=40,b=20),
                     xaxis_title="", yaxis_title="Stock (bbls)",
                     legend=dict(orientation="h", y=-0.2),
@@ -1510,6 +1510,7 @@ elif page == "Monte Carlo":
                     line_color=RANK_COLORS[i], line_width=2,
                     annotation_text=f"#{i+1}", annotation_position="top")
             fig_dist.update_layout(height=280, margin=dict(l=10,r=10,t=40,b=20),
+                title=dict(font=dict(color="#111827", size=14)),
                 xaxis_title="Weighted Score", yaxis_title="Count",
                 showlegend=False,
                 paper_bgcolor="#ffffff", plot_bgcolor="#ffffff",
@@ -1571,7 +1572,8 @@ elif page == "Monte Carlo":
                     marker=dict(color=RANK_COLORS[ri], size=12, symbol="star"),
                     text=[f"#{ri+1}"], textposition="top center"))
             fig_ov.update_layout(
-                title="NEPL Volume across all runs (top 5 highlighted)",
+                title=dict(text="NEPL Volume across all runs (top 5 highlighted)",
+                           font=dict(color="#111827", size=14)),
                 height=300, margin=dict(l=10,r=10,t=40,b=20),
                 xaxis_title="Run #", yaxis_title="NEPL Volume (bbls)",
                 paper_bgcolor="#ffffff", plot_bgcolor="#ffffff",
