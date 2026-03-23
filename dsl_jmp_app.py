@@ -259,6 +259,24 @@ section[data-testid="stSidebar"] .nav-active .stButton>button {
 .file-pill    { display:flex;align-items:center;gap:8px;padding:9px 12px;border-radius:9px;
                 margin-bottom:6px;font-size:12.5px;font-weight:600; }
 .file-pill.ok { background:#f0fdf6;border:1.5px solid #a7f3d0;color:#065f46; }
+/* Force all form labels dark */
+div[data-testid="stForm"] label,
+div[data-testid="column"] label,
+label[data-testid="stWidgetLabel"],
+label[data-testid="stWidgetLabel"] p,
+.stSelectbox label, .stSelectbox label p,
+.stTextInput label, .stNumberInput label,
+div[class*="stSelectbox"] label p,
+div[class*="stSelectbox"] > label {
+    color: #111827 !important;
+    font-weight: 600 !important;
+}
+/* Selectbox itself */
+div[data-testid="stSelectbox"] > label,
+div[data-testid="stSelectbox"] > label > p {
+    color: #111827 !important;
+    font-weight: 600 !important;
+}
 /* Force expander to white in all environments */
 div[data-testid="stExpander"] {
     background:#ffffff !important;
@@ -1332,19 +1350,27 @@ elif page == "Simulation Table":
                   .format(na_rep="")
                   .hide(axis="index"))
 
-        sim_table_css = """<style>
-            .sim-tbl-wrap table{border-collapse:collapse;width:max-content;font-size:12px;}
-            .sim-tbl-wrap th{background:#1a3fc4!important;color:#fff!important;padding:7px 10px;
-                text-align:center;font-weight:600;white-space:nowrap;position:sticky;top:0;z-index:2;}
-            .sim-tbl-wrap td{padding:6px 10px;text-align:center;border:1px solid #e2e8f0;
-                white-space:nowrap;color:#111827;}
-            .sim-tbl-wrap tr:nth-child(even) td{filter:brightness(0.97);}
-            </style>"""
+        _sim_html = styled.to_html()
+        sim_table_css = (
+            "<style>"
+            ".sim-tbl-wrap{background:#fff;}"
+            ".sim-tbl-wrap table{border-collapse:collapse;width:max-content;font-size:12px;background:#fff;}"
+            ".sim-tbl-wrap th{background:#1a3fc4!important;color:#fff!important;padding:7px 10px;"
+            "text-align:center;font-weight:600;white-space:nowrap;position:sticky;top:0;z-index:2;}"
+            ".sim-tbl-wrap td{padding:6px 10px;text-align:center;border:1px solid #e2e8f0;"
+            "white-space:nowrap;color:#111827!important;background:#ffffff;}"
+            ".sim-tbl-wrap td:first-child{color:#111827!important;font-weight:600;"
+            "background:#f0f4ff!important;position:sticky;left:0;z-index:1;}"
+            ".sim-tbl-wrap tr:nth-child(even) td{background:#f8faff;}"
+            "</style>"
+        )
         st.markdown(
-            sim_table_css + '<div class="sim-tbl-wrap" style="overflow-x:auto;border-radius:12px;border:1.5px solid #e8edf8;">',
+            sim_table_css +
+            '<div class="sim-tbl-wrap" style="overflow-x:auto;border-radius:12px;' +
+            'border:1.5px solid #e8edf8;background:#fff;">' +
+            _sim_html +
+            '</div>',
             unsafe_allow_html=True)
-        st.write(styled.to_html(), unsafe_allow_html=True)
-        st.markdown("</div>", unsafe_allow_html=True)
 
         # ── Download ───────────────────────────────────────────────────────────
         st.markdown("<br>", unsafe_allow_html=True)
