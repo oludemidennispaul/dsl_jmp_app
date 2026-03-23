@@ -89,20 +89,25 @@ html,body,[class*="css"]{font-family:'DM Sans',sans-serif;}
 /* Hide Streamlit top toolbar and decoration completely */
 [data-testid="stToolbar"]{display:none!important;}
 [data-testid="stDecoration"]{display:none!important;}
-[data-testid="stHeader"]{display:none!important;height:0!important;}
+[data-testid="stHeader"]{display:none!important;height:0!important;min-height:0!important;}
 [data-testid="stStatusWidget"]{display:none!important;}
 iframe[title="st_connection_status.iframe"]{display:none!important;}
 div[class*="StatusWidget"]{display:none!important;}
 header[data-testid="stHeader"]{display:none!important;height:0!important;min-height:0!important;}
-.block-container{padding:0.2rem 1.5rem 1rem!important;max-width:100%!important;}
+/* Kill every possible top spacing source */
+[data-testid="stAppViewContainer"]{margin-top:0!important;padding-top:0!important;}
+[data-testid="stSidebar"] ~ section{margin-top:0!important;padding-top:0!important;}
+.main .block-container{margin-top:0!important;}
+div[class^="appview"]{padding-top:0!important;}
+.block-container{padding:0 1.5rem 1rem!important;max-width:100%!important;}
 /* Remove Streamlit's default large top gap on deployed apps */
-div[data-testid="stMainBlockContainer"]{padding-top:0.2rem!important;margin-top:0!important;}
-div[data-testid="stAppViewBlockContainer"]{padding-top:0.2rem!important;margin-top:0!important;}
-div[data-testid="block-container"]{padding-top:0.2rem!important;margin-top:0!important;}
+div[data-testid="stMainBlockContainer"]{padding-top:0!important;margin-top:0!important;}
+div[data-testid="stAppViewBlockContainer"]{padding-top:0!important;margin-top:0!important;}
+div[data-testid="block-container"]{padding-top:0!important;margin-top:0!important;}
 section.main > div:first-child{padding-top:0!important;margin-top:0!important;}
-section.main .block-container{padding-top:0.2rem!important;margin-top:0!important;}
+section.main .block-container{padding-top:0!important;margin-top:0!important;}
 section.main{padding-top:0!important;}
-.appview-container .main .block-container{padding-top:0.2rem!important;}
+.appview-container .main .block-container{padding-top:0!important;}
 div[data-testid="stVerticalBlock"]{gap:0.4rem!important;}
 div[data-testid="stVerticalBlock"] > div:first-child > div[data-testid="stMarkdownContainer"]:empty{display:none;}
 
