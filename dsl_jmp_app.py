@@ -108,7 +108,7 @@ section.main > div:first-child{padding-top:0!important;margin-top:0!important;}
 section.main .block-container{padding-top:0!important;margin-top:0!important;}
 section.main{padding-top:0!important;}
 .appview-container .main .block-container{padding-top:0!important;}
-div[data-testid="stVerticalBlock"]{gap:0.4rem!important;}
+div[data-testid="stVerticalBlock"]{gap:0.75rem!important;}
 div[data-testid="stVerticalBlock"] > div:first-child > div[data-testid="stMarkdownContainer"]:empty{display:none;}
 
 /* ── Main area background ── */
@@ -275,8 +275,8 @@ section[data-testid="stSidebar"] .nav-active .stButton>button {
                  text-transform:uppercase;margin-bottom:14px;display:flex;align-items:center;gap:7px; }
 .sec-title span{ display:inline-flex;align-items:center;justify-content:center;
                  width:20px;height:20px;border-radius:5px;background:#1a3fc4;color:#fff;font-size:10px; }
-.plabel { font-size:11.5px;font-weight:600;color:#1a3fc4;margin-bottom:3px;margin-top:10px; }
-.phint  { font-size:10.5px;color:#6b7a99;margin-top:1px;margin-bottom:4px; }
+.plabel { font-size:13px;font-weight:600;color:#1a3fc4;margin-bottom:4px;margin-top:14px;display:block; }
+.phint  { font-size:12px;color:#6b7a99;margin-top:2px;margin-bottom:6px;display:block; }
 .col-hdr{ font-size:10px;font-weight:700;color:#1a3fc4;text-transform:uppercase;
           letter-spacing:0.6px;padding:3px 0 8px; }
 .file-pill    { display:flex;align-items:center;gap:8px;padding:9px 12px;border-radius:9px;
