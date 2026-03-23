@@ -86,7 +86,15 @@ st.markdown("""
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800&display=swap');
 html,body,[class*="css"]{font-family:'DM Sans',sans-serif;}
 #MainMenu,footer,header{visibility:hidden;}
-.block-container{padding:0!important;max-width:100%!important;}
+.block-container{padding:0.5rem 1.5rem 1rem!important;max-width:100%!important;}
+/* Remove Streamlit's default large top gap on deployed apps */
+div[data-testid="stMainBlockContainer"]{padding-top:0.5rem!important;}
+div[data-testid="stAppViewBlockContainer"]{padding-top:0.5rem!important;}
+div[data-testid="block-container"]{padding-top:0.5rem!important;}
+section.main > div:first-child{padding-top:0!important;}
+section.main .block-container{padding-top:0.5rem!important;}
+/* Hide the blank space Streamlit adds before first element */
+div[data-testid="stVerticalBlock"] > div:first-child > div[data-testid="stMarkdownContainer"]:empty{display:none;}
 
 /* ── Main area background ── */
 [data-testid="stAppViewContainer"]>section.main,
@@ -246,8 +254,8 @@ section[data-testid="stSidebar"] .nav-active .stButton>button {
 [data-baseweb="popover"],[data-baseweb="menu"] { background: #ffffff !important; }
 
 /* page text */
-.page-title    { font-size:32px;font-weight:800;color:#0d1b6e;letter-spacing:-0.7px;margin-bottom:3px; }
-.page-subtitle { font-size:13.5px;color:#6b7a99;margin-bottom:22px; }
+.page-title    { font-size:28px;font-weight:800;color:#0d1b6e;letter-spacing:-0.5px;margin-bottom:2px;margin-top:0!important;padding-top:0!important; }
+.page-subtitle { font-size:12.5px;color:#6b7a99;margin-bottom:10px; }
 .sec-title     { font-size:10.5px;font-weight:800;letter-spacing:1.1px;color:#1a3fc4;
                  text-transform:uppercase;margin-bottom:14px;display:flex;align-items:center;gap:7px; }
 .sec-title span{ display:inline-flex;align-items:center;justify-content:center;
