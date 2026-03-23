@@ -773,6 +773,55 @@ SanJulian transloads to next available mother (1-day lead).
             st.markdown('<div class="sec-title"><span>1</span> DSL Datahub</div>', unsafe_allow_html=True)
             st.markdown('<div class="phint" style="margin-bottom:8px;">Excel file with shuttle vessel schedule, storage loads and historical discharge data. Initial stock levels will be read from this file.</div>', unsafe_allow_html=True)
             st.file_uploader("DSL Datahub (.xlsx)", type=["xlsx"], key="datahub_upload", label_visibility="collapsed")
+
+            # ── Auto-read stock levels from datahub as soon as file is uploaded ──
+            _dh_up = st.session_state.get("datahub_upload")
+            if _dh_up is not None:
+                import io as _io, pandas as _pd
+                from engine import STOCK_SHEET_MAP as _SSM
+                try:
+                    _dh_up.seek(0)
+                    _wb_bytes = _dh_up.read()
+                    _dh_up.seek(0)
+                    _asof = _pd.to_datetime(st.session_state.sim_start).normalize()
+
+                    # Update mother vessel stocks
+                    _mv_updated = {m["name"]: m.copy() for m in st.session_state.mother_vessels}
+                    for _mname, _cfg in _SSM["mothers"].items():
+                        try:
+                            _df = _pd.read_excel(_io.BytesIO(_wb_bytes), sheet_name=_cfg["sheet"])
+                            _df[_cfg["date_col"]] = _pd.to_datetime(_df[_cfg["date_col"]], errors="coerce").dt.normalize()
+                            _df[_cfg["stock_col"]] = _pd.to_numeric(_df[_cfg["stock_col"]].astype(str).str.replace(",","",regex=False).str.strip(), errors="coerce")
+                            _df = _df.dropna(subset=[_cfg["date_col"], _cfg["stock_col"]]).sort_values(_cfg["date_col"])
+                            _row = _df[_df[_cfg["date_col"]] == _asof]
+                            if _row.empty:
+                                _row = _df[_df[_cfg["date_col"]] < _asof]
+                            if not _row.empty and _mname in _mv_updated:
+                                _mv_updated[_mname]["stock"] = int(_row.iloc[-1][_cfg["stock_col"]])
+                        except Exception:
+                            pass
+                    st.session_state.mother_vessels = list(_mv_updated.values())
+
+                    # Update storage vessel stocks
+                    _sv_updated = {s["name"]: s.copy() for s in st.session_state.storage_vessels}
+                    for _sname, _cfg in _SSM["storages"].items():
+                        try:
+                            _df = _pd.read_excel(_io.BytesIO(_wb_bytes), sheet_name=_cfg["sheet"])
+                            _df[_cfg["date_col"]] = _pd.to_datetime(_df[_cfg["date_col"]], errors="coerce").dt.normalize()
+                            _df[_cfg["stock_col"]] = _pd.to_numeric(_df[_cfg["stock_col"]].astype(str).str.replace(",","",regex=False).str.strip(), errors="coerce")
+                            _df = _df.dropna(subset=[_cfg["date_col"], _cfg["stock_col"]]).sort_values(_cfg["date_col"])
+                            _row = _df[_df[_cfg["date_col"]] == _asof]
+                            if _row.empty:
+                                _row = _df[_df[_cfg["date_col"]] < _asof]
+                            if not _row.empty and _sname in _sv_updated:
+                                _sv_updated[_sname]["stock"] = int(_row.iloc[-1][_cfg["stock_col"]])
+                        except Exception:
+                            pass
+                    st.session_state.storage_vessels = list(_sv_updated.values())
+
+                except Exception:
+                    pass
+
             st.markdown("<br>", unsafe_allow_html=True)
             st.markdown('<div class="sec-title"><span>2</span> Tidal Window File</div>', unsafe_allow_html=True)
             st.markdown('<div class="phint" style="margin-bottom:8px;">San Barth Entrance predicted tides PDF (e.g. "San Barth Entrance Q2 2026 Predicted Tides.pdf").</div>', unsafe_allow_html=True)
@@ -1113,7 +1162,9 @@ elif page == "Dashboard":
                     fig.update_layout(barmode="stack", height=360,
                         margin=dict(l=10,r=10,t=40,b=40),
                         xaxis_title="", yaxis_title="Volume (bbls)",
-                        legend=dict(orientation="h", y=-0.25))
+                        legend=dict(orientation="h", y=-0.25),
+                        paper_bgcolor="#ffffff", plot_bgcolor="#ffffff",
+                        font=dict(color="#111827"))
                     st.plotly_chart(fig, use_container_width=True)
                 except ImportError:
                     st.warning("Run: pip install plotly")
@@ -1130,7 +1181,9 @@ elif page == "Dashboard":
                         color_discrete_sequence=["#111827"])
                     fig2.update_layout(height=360, margin=dict(l=10,r=10,t=40,b=80),
                         xaxis_title="", yaxis_title="Volume (bbls)",
-                        xaxis_tickangle=-30)
+                        xaxis_tickangle=-30,
+                        paper_bgcolor="#ffffff", plot_bgcolor="#ffffff",
+                        font=dict(color="#111827"))
                     st.plotly_chart(fig2, use_container_width=True)
                 except ImportError:
                     pass
@@ -1156,7 +1209,9 @@ elif page == "Dashboard":
                 fig3.update_layout(title="Mother Vessel Stock Over Time",
                     height=320, margin=dict(l=10,r=10,t=40,b=20),
                     xaxis_title="", yaxis_title="Stock (bbls)",
-                    legend=dict(orientation="h", y=-0.2))
+                    legend=dict(orientation="h", y=-0.2),
+                    paper_bgcolor="#ffffff", plot_bgcolor="#ffffff",
+                    font=dict(color="#111827"))
                 st.plotly_chart(fig3, use_container_width=True)
             except ImportError:
                 pass
@@ -1480,6 +1535,7 @@ elif page == "Monte Carlo":
             fig_ov.update_layout(title="NEPL Volume across all runs (top 5 highlighted)",
                 height=300, margin=dict(l=10,r=10,t=40,b=20),
                 xaxis_title="Run #", yaxis_title="NEPL Volume (bbls)")
+            fig_ov.update_layout(paper_bgcolor="#ffffff", plot_bgcolor="#ffffff", font=dict(color="#111827"))
             st.plotly_chart(fig_ov, use_container_width=True)
         except ImportError:
             pass
