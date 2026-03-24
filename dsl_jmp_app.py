@@ -1724,6 +1724,81 @@ elif page == "Monte Carlo":
         except ImportError:
             pass
 
+        # ── Statistical Summary ───────────────────────────────────────────────
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown('<div class="sec-title"><span>📊</span> What the runs are telling you</div>', unsafe_allow_html=True)
+
+        _metrics_map = {
+            "nepl_vol":       "NEPL Volume (bbls)",
+            "total_vol":      "Total Volume (bbls)",
+            "trips":          "SBM Trips",
+            "tp_vol":         "3rd Party Volume (bbls)",
+            "mother_balance": "Mother Balance",
+            "shuttle_vol":    "Shuttle Volume (bbls)",
+        }
+
+        _stat_rows = []
+        for _mk, _mlabel in _metrics_map.items():
+            if _mk not in df_kpi.columns:
+                continue
+            _s = df_kpi[_mk]
+            _stat_rows.append({
+                "Metric":   _mlabel,
+                "Min":      f"{int(_s.min()):,}"  if _mk not in ["mother_balance"] else f"{_s.min():.3f}",
+                "Max":      f"{int(_s.max()):,}"  if _mk not in ["mother_balance"] else f"{_s.max():.3f}",
+                "Mean":     f"{int(_s.mean()):,}" if _mk not in ["mother_balance"] else f"{_s.mean():.3f}",
+                "Median":   f"{int(_s.median()):,}" if _mk not in ["mother_balance"] else f"{_s.median():.3f}",
+                "Std Dev":  f"{int(_s.std()):,}"  if _mk not in ["mother_balance"] else f"{_s.std():.3f}",
+                "Variance": f"{(_s.std()/_s.mean()*100):.1f}%" if _s.mean() != 0 else "—",
+            })
+
+        _stat_df = pd.DataFrame(_stat_rows)
+        _stat_html = _stat_df.to_html(index=False, border=0, classes="stat-tbl")
+        st.markdown("""<style>
+            .stat-tbl{border-collapse:collapse;width:100%;font-size:13px;color:#111827;}
+            .stat-tbl th{background:#1a3fc4;color:#fff;padding:9px 14px;text-align:left;font-weight:600;white-space:nowrap;}
+            .stat-tbl td{padding:8px 14px;border-bottom:1px solid #e8edf8;color:#111827;background:#fff;white-space:nowrap;}
+            .stat-tbl tr:nth-child(even) td{background:#f8faff;}
+            </style>""" + f'<div style="overflow-x:auto;border-radius:10px;border:1.5px solid #e8edf8;">{_stat_html}</div>',
+            unsafe_allow_html=True)
+
+        # ── Narrative insights ─────────────────────────────────────────────────
+        st.markdown("<br>", unsafe_allow_html=True)
+        _nepl = df_kpi["nepl_vol"] if "nepl_vol" in df_kpi.columns else None
+        _trips = df_kpi["trips"] if "trips" in df_kpi.columns else None
+        _insights = []
+
+        if _nepl is not None:
+            _cv = _nepl.std() / _nepl.mean() * 100 if _nepl.mean() > 0 else 0
+            _gap = int(_nepl.max() - _nepl.min())
+            if _cv < 3:
+                _insights.append(f"✅ **NEPL Volume is very stable** — only {_cv:.1f}% variance across all {n_runs} runs. Your parameters are well-constrained and results are reliable.")
+            elif _cv < 8:
+                _insights.append(f"⚡ **NEPL Volume has moderate variance** ({_cv:.1f}%). The gap between best and worst run is **{_gap:,} bbls** — worth running more simulations to find the peak.")
+            else:
+                _insights.append(f"⚠️ **NEPL Volume is highly variable** ({_cv:.1f}%). There's a **{_gap:,} bbl spread** between runs — your load volumes have significant jitter. Consider tightening target loads.")
+
+        if _trips is not None:
+            _trip_mode = int(_trips.mode().iloc[0])
+            _trip_min = int(_trips.min())
+            _trip_max = int(_trips.max())
+            if _trip_min == _trip_max:
+                _insights.append(f"✅ **SBM trips are consistent** at {_trip_mode} across all runs — the scheduling logic is deterministic at this level.")
+            else:
+                _insights.append(f"📦 **SBM trips range from {_trip_min} to {_trip_max}** — most runs complete {_trip_mode} injections. The {_trip_max - _trip_min} trip difference represents meaningful volume opportunity.")
+
+        if "score" in df_kpi.columns:
+            _top10_pct = (df_kpi["score"] >= df_kpi["score"].quantile(0.9)).sum()
+            _score_gap = df_kpi["score"].max() - df_kpi["score"].quantile(0.5)
+            _insights.append(f"🏆 **Top 10% of runs ({_top10_pct} runs)** score significantly above median — using the rank #1 seed gives you a **{_score_gap:.3f} score advantage** over a typical run.")
+
+        for _ins in _insights:
+            st.markdown(f'<div style="background:#f0f4ff;border-left:4px solid #1a3fc4;border-radius:8px;'
+                        f'padding:12px 16px;margin-bottom:10px;font-size:13px;color:#111827;">{_ins}</div>',
+                        unsafe_allow_html=True)
+
+        st.markdown("<br>", unsafe_allow_html=True)
+
         # ── Criteria weights used ─────────────────────────────────────────────
         with st.expander("Weights used for this run"):
             _wdf = pd.DataFrame([
