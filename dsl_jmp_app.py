@@ -1161,7 +1161,13 @@ and surface the <strong>top 5 best outcomes</strong>.</div></div>''', unsafe_all
                 if _all_kpis:
                     # normalise each metric 0→1 across all runs
                     _metrics = ["trips","nepl_vol","total_vol","mother_balance","shuttle_vol"]
-                    _df_kpi = _pd.DataFrame([{m: r[m] for m in _metrics} | {"seed": r["seed"], "run_no": r["run_no"]} for r in _all_kpis])
+                    _risk_fields = ["has_tank_top","first_tank_top","has_backlog","first_backlog","idle_days"]
+                    _df_kpi = _pd.DataFrame([
+                        {m: r[m] for m in _metrics}
+                        | {f: r.get(f) for f in _risk_fields}
+                        | {"seed": r["seed"], "run_no": r["run_no"]}
+                        for r in _all_kpis
+                    ])
 
                     for _m in _metrics:
                         _lo, _hi = _df_kpi[_m].min(), _df_kpi[_m].max()
@@ -1724,79 +1730,174 @@ elif page == "Monte Carlo":
         except ImportError:
             pass
 
-        # ── Statistical Summary ───────────────────────────────────────────────
+        # ── Full MC Analytics ─────────────────────────────────────────────────
         st.markdown("<br>", unsafe_allow_html=True)
-        st.markdown('<div class="sec-title"><span>📊</span> What the runs are telling you</div>', unsafe_allow_html=True)
+        st.markdown('<div class="sec-title"><span>📊</span> Run Distribution Analytics</div>', unsafe_allow_html=True)
 
-        _metrics_map = {
-            "nepl_vol":       "NEPL Volume (bbls)",
-            "total_vol":      "Total Volume (bbls)",
-            "trips":          "SBM Trips",
-            "tp_vol":         "3rd Party Volume (bbls)",
-            "mother_balance": "Mother Balance",
-            "shuttle_vol":    "Shuttle Volume (bbls)",
-        }
-
-        _stat_rows = []
-        for _mk, _mlabel in _metrics_map.items():
-            if _mk not in df_kpi.columns:
-                continue
+        # ── P10 / P50 / P90 throughput table ──────────────────────────────────
+        import numpy as np
+        _perc_metrics = [
+            ("nepl_vol",   "NEPL Volume (bbls)"),
+            ("total_vol",  "Total Volume (bbls)"),
+            ("trips",      "SBM Trips"),
+        ]
+        _perc_rows = []
+        for _mk, _mlabel in _perc_metrics:
+            if _mk not in df_kpi.columns: continue
             _s = df_kpi[_mk]
-            _stat_rows.append({
-                "Metric":   _mlabel,
-                "Min":      f"{int(_s.min()):,}"  if _mk not in ["mother_balance"] else f"{_s.min():.3f}",
-                "Max":      f"{int(_s.max()):,}"  if _mk not in ["mother_balance"] else f"{_s.max():.3f}",
-                "Mean":     f"{int(_s.mean()):,}" if _mk not in ["mother_balance"] else f"{_s.mean():.3f}",
-                "Median":   f"{int(_s.median()):,}" if _mk not in ["mother_balance"] else f"{_s.median():.3f}",
-                "Std Dev":  f"{int(_s.std()):,}"  if _mk not in ["mother_balance"] else f"{_s.std():.3f}",
-                "Variance": f"{(_s.std()/_s.mean()*100):.1f}%" if _s.mean() != 0 else "—",
+            _perc_rows.append({
+                "Metric": _mlabel,
+                "P10 (pessimistic)": f"{int(np.percentile(_s,10)):,}",
+                "P50 (median)":      f"{int(np.percentile(_s,50)):,}",
+                "P90 (optimistic)":  f"{int(np.percentile(_s,90)):,}",
+                "Mean":              f"{int(_s.mean()):,}",
+                "Min":               f"{int(_s.min()):,}",
+                "Max":               f"{int(_s.max()):,}",
             })
-
-        _stat_df = pd.DataFrame(_stat_rows)
-        _stat_html = _stat_df.to_html(index=False, border=0, classes="stat-tbl")
+        _perc_html = pd.DataFrame(_perc_rows).to_html(index=False, border=0, classes="mc-tbl")
+        st.markdown('<div style="font-size:13px;font-weight:600;color:#1a3fc4;margin-bottom:6px;">Throughput Summary (P10 / P50 / P90)</div>', unsafe_allow_html=True)
         st.markdown("""<style>
-            .stat-tbl{border-collapse:collapse;width:100%;font-size:13px;color:#111827;}
-            .stat-tbl th{background:#1a3fc4;color:#fff;padding:9px 14px;text-align:left;font-weight:600;white-space:nowrap;}
-            .stat-tbl td{padding:8px 14px;border-bottom:1px solid #e8edf8;color:#111827;background:#fff;white-space:nowrap;}
-            .stat-tbl tr:nth-child(even) td{background:#f8faff;}
-            </style>""" + f'<div style="overflow-x:auto;border-radius:10px;border:1.5px solid #e8edf8;">{_stat_html}</div>',
+            .mc-tbl{border-collapse:collapse;width:100%;font-size:13px;color:#111827;}
+            .mc-tbl th{background:#1a3fc4;color:#fff;padding:9px 14px;text-align:left;font-weight:600;white-space:nowrap;}
+            .mc-tbl td{padding:8px 14px;border-bottom:1px solid #e8edf8;color:#111827;background:#fff;white-space:nowrap;}
+            .mc-tbl tr:nth-child(even) td{background:#f8faff;}
+            </style>""" + f'<div style="overflow-x:auto;border-radius:10px;border:1.5px solid #e8edf8;margin-bottom:16px;">{_perc_html}</div>',
+            unsafe_allow_html=True)
+
+        # ── Distribution histograms: NEPL, Total Vol, Trips ───────────────────
+        try:
+            import plotly.express as px
+            import plotly.graph_objects as go
+            _hist_cols = st.columns(3, gap="small")
+            for _hci, (_hmk, _hmlabel) in enumerate(_perc_metrics):
+                if _hmk not in df_kpi.columns: continue
+                with _hist_cols[_hci]:
+                    _hfig = px.histogram(df_kpi, x=_hmk, nbins=25,
+                        color_discrete_sequence=["#1a3fc4"],
+                        labels={_hmk: _hmlabel})
+                    _p50 = float(np.percentile(df_kpi[_hmk], 50))
+                    _p10 = float(np.percentile(df_kpi[_hmk], 10))
+                    _p90 = float(np.percentile(df_kpi[_hmk], 90))
+                    _hfig.add_vline(x=_p50, line_dash="dash", line_color="#f59e0b",
+                        annotation_text="P50", annotation_position="top")
+                    _hfig.add_vline(x=_p10, line_dash="dot", line_color="#e84545",
+                        annotation_text="P10", annotation_position="top")
+                    _hfig.add_vline(x=_p90, line_dash="dot", line_color="#10b981",
+                        annotation_text="P90", annotation_position="top")
+                    _hfig.update_layout(height=240, margin=dict(l=10,r=10,t=30,b=20),
+                        title_text=_hmlabel, title_font=dict(color="#111827",size=12),
+                        paper_bgcolor="#ffffff", plot_bgcolor="#ffffff",
+                        font=dict(color="#111827"),
+                        xaxis=dict(color="#111827",gridcolor="#e2e8f0",tickfont=dict(color="#111827")),
+                        yaxis=dict(color="#111827",gridcolor="#e2e8f0",tickfont=dict(color="#111827")),
+                        showlegend=False)
+                    st.plotly_chart(_hfig, use_container_width=True)
+        except ImportError:
+            pass
+
+        # ── Risk probabilities ─────────────────────────────────────────────────
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown('<div style="font-size:13px;font-weight:600;color:#1a3fc4;margin-bottom:6px;">Risk Probabilities</div>', unsafe_allow_html=True)
+        _n_total = len(df_kpi)
+        _risk_rows = []
+        if "has_tank_top" in df_kpi.columns:
+            _pct_tt = df_kpi["has_tank_top"].sum() / _n_total * 100
+            _risk_rows.append({"Risk Event": "Storage tank top occurred", "% of Runs": f"{_pct_tt:.0f}%",
+                "Interpretation": "Low risk" if _pct_tt < 20 else ("Moderate" if _pct_tt < 50 else "High risk")})
+        if "has_backlog" in df_kpi.columns:
+            _pct_bl = df_kpi["has_backlog"].sum() / _n_total * 100
+            _risk_rows.append({"Risk Event": "Shuttle backlog (>5 in transit)", "% of Runs": f"{_pct_bl:.0f}%",
+                "Interpretation": "Low risk" if _pct_bl < 20 else ("Moderate" if _pct_bl < 50 else "High risk")})
+        if "idle_days" in df_kpi.columns:
+            _pct_idle = (df_kpi["idle_days"] > 3).sum() / _n_total * 100
+            _avg_idle = df_kpi["idle_days"].mean()
+            _risk_rows.append({"Risk Event": f"Mother idle while shuttles wait (avg {_avg_idle:.0f} days)", "% of Runs": f"{_pct_idle:.0f}%",
+                "Interpretation": "Low risk" if _pct_idle < 20 else ("Moderate" if _pct_idle < 50 else "High risk")})
+        if _risk_rows:
+            _risk_html = pd.DataFrame(_risk_rows).to_html(index=False, border=0, classes="mc-tbl")
+            st.markdown(f'<div style="overflow-x:auto;border-radius:10px;border:1.5px solid #e8edf8;margin-bottom:16px;">{_risk_html}</div>',
+                unsafe_allow_html=True)
+
+        # ── Failure timing ─────────────────────────────────────────────────────
+        if "first_tank_top" in df_kpi.columns or "first_backlog" in df_kpi.columns:
+            st.markdown('<div style="font-size:13px;font-weight:600;color:#1a3fc4;margin-bottom:6px;">Failure Timing</div>', unsafe_allow_html=True)
+            _timing_rows = []
+            if "first_tank_top" in df_kpi.columns:
+                _tt_dates = df_kpi["first_tank_top"].dropna()
+                if not _tt_dates.empty:
+                    _earliest_tt = _tt_dates.min()
+                    _median_tt   = sorted(_tt_dates)[len(_tt_dates)//2]
+                    _timing_rows.append({"Event": "First tank top", "Earliest": _earliest_tt,
+                        "Median": _median_tt, "Runs affected": f"{len(_tt_dates)} / {_n_total}"})
+            if "first_backlog" in df_kpi.columns:
+                _bl_dates = df_kpi["first_backlog"].dropna()
+                if not _bl_dates.empty:
+                    _earliest_bl = _bl_dates.min()
+                    _median_bl   = sorted(_bl_dates)[len(_bl_dates)//2]
+                    _timing_rows.append({"Event": "First shuttle backlog", "Earliest": _earliest_bl,
+                        "Median": _median_bl, "Runs affected": f"{len(_bl_dates)} / {_n_total}"})
+            if _timing_rows:
+                _timing_html = pd.DataFrame(_timing_rows).to_html(index=False, border=0, classes="mc-tbl")
+                st.markdown(f'<div style="overflow-x:auto;border-radius:10px;border:1.5px solid #e8edf8;margin-bottom:16px;">{_timing_html}</div>',
+                    unsafe_allow_html=True)
+
+        # ── Typical vs Best vs Worst ───────────────────────────────────────────
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown('<div style="font-size:13px;font-weight:600;color:#1a3fc4;margin-bottom:6px;">Best vs Median vs P10 Run Comparison</div>', unsafe_allow_html=True)
+        _p50_idx  = (df_kpi["nepl_vol"] - float(np.percentile(df_kpi["nepl_vol"],50))).abs().idxmin()
+        _p10_idx  = (df_kpi["nepl_vol"] - float(np.percentile(df_kpi["nepl_vol"],10))).abs().idxmin()
+        _best_idx = df_kpi["score"].idxmax()
+        _compare_rows = []
+        for _lbl, _idx in [("🏆 Best (Rank #1)", _best_idx), ("📊 Median (P50)", _p50_idx), ("⚠️ Pessimistic (P10)", _p10_idx)]:
+            _r = df_kpi.iloc[_idx]
+            _compare_rows.append({
+                "Scenario":         _lbl,
+                "Seed":             int(_r["seed"]),
+                "Score":            f"{_r['score']:.4f}",
+                "NEPL (bbls)":      f"{int(_r['nepl_vol']):,}",
+                "Total Vol (bbls)": f"{int(_r['total_vol']):,}",
+                "Trips":            int(_r["trips"]),
+                "3rd Party (bbls)": f"{int(_r.get('tp_vol',0)):,}" if "tp_vol" in _r else "—",
+            })
+        _cmp2_html = pd.DataFrame(_compare_rows).to_html(index=False, border=0, classes="mc-tbl")
+        st.markdown(f'<div style="overflow-x:auto;border-radius:10px;border:1.5px solid #e8edf8;margin-bottom:16px;">{_cmp2_html}</div>',
             unsafe_allow_html=True)
 
         # ── Narrative insights ─────────────────────────────────────────────────
         st.markdown("<br>", unsafe_allow_html=True)
-        _nepl = df_kpi["nepl_vol"] if "nepl_vol" in df_kpi.columns else None
-        _trips = df_kpi["trips"] if "trips" in df_kpi.columns else None
         _insights = []
-
-        if _nepl is not None:
+        if "nepl_vol" in df_kpi.columns:
+            _nepl = df_kpi["nepl_vol"]
             _cv = _nepl.std() / _nepl.mean() * 100 if _nepl.mean() > 0 else 0
             _gap = int(_nepl.max() - _nepl.min())
+            _p10v = int(np.percentile(_nepl, 10))
+            _p90v = int(np.percentile(_nepl, 90))
             if _cv < 3:
-                _insights.append(f"✅ **NEPL Volume is very stable** — only {_cv:.1f}% variance across all {n_runs} runs. Your parameters are well-constrained and results are reliable.")
+                _insights.append(f"✅ **NEPL is very stable** — {_cv:.1f}% variance. P10 to P90 range is only {_p90v-_p10v:,} bbls. Your rank #1 result is highly reliable.")
             elif _cv < 8:
-                _insights.append(f"⚡ **NEPL Volume has moderate variance** ({_cv:.1f}%). The gap between best and worst run is **{_gap:,} bbls** — worth running more simulations to find the peak.")
+                _insights.append(f"⚡ **NEPL has moderate variance** ({_cv:.1f}%). P10={_p10v:,} → P90={_p90v:,} bbls ({_p90v-_p10v:,} bbl spread). Running rank #1 seed is recommended over median.")
             else:
-                _insights.append(f"⚠️ **NEPL Volume is highly variable** ({_cv:.1f}%). There's a **{_gap:,} bbl spread** between runs — your load volumes have significant jitter. Consider tightening target loads.")
-
-        if _trips is not None:
-            _trip_mode = int(_trips.mode().iloc[0])
-            _trip_min = int(_trips.min())
-            _trip_max = int(_trips.max())
-            if _trip_min == _trip_max:
-                _insights.append(f"✅ **SBM trips are consistent** at {_trip_mode} across all runs — the scheduling logic is deterministic at this level.")
+                _insights.append(f"⚠️ **NEPL is highly variable** ({_cv:.1f}%). {_gap:,} bbl spread between best and worst — load jitter is significantly affecting outcomes. Consider tightening target loads.")
+        if "trips" in df_kpi.columns:
+            _trips = df_kpi["trips"]
+            _tmode = int(_trips.mode().iloc[0])
+            _tmin, _tmax = int(_trips.min()), int(_trips.max())
+            if _tmin == _tmax:
+                _insights.append(f"✅ **SBM trips are locked at {_tmode}** across all {n_runs} runs — scheduling is deterministic at this parameter set.")
             else:
-                _insights.append(f"📦 **SBM trips range from {_trip_min} to {_trip_max}** — most runs complete {_trip_mode} injections. The {_trip_max - _trip_min} trip difference represents meaningful volume opportunity.")
-
-        if "score" in df_kpi.columns:
-            _top10_pct = (df_kpi["score"] >= df_kpi["score"].quantile(0.9)).sum()
-            _score_gap = df_kpi["score"].max() - df_kpi["score"].quantile(0.5)
-            _insights.append(f"🏆 **Top 10% of runs ({_top10_pct} runs)** score significantly above median — using the rank #1 seed gives you a **{_score_gap:.3f} score advantage** over a typical run.")
-
+                _insights.append(f"📦 **SBM trips vary {_tmin}–{_tmax}** (mode {_tmode}). The {_tmax-_tmin}-trip difference represents ~{int((_tmax-_tmin)*490000):,} bbls of opportunity.")
+        if _risk_rows:
+            _tt_pct = float(_risk_rows[0]["% of Runs"].replace("%","")) if _risk_rows else 0
+            if _tt_pct > 50:
+                _insights.append(f"🔴 **Tank tops occur in {_tt_pct:.0f}% of runs** — storage capacity is a binding constraint. Consider increasing storage caps or reducing production rates.")
+            elif _tt_pct > 0:
+                _insights.append(f"🟡 **Tank tops in {_tt_pct:.0f}% of runs** — manageable but worth monitoring. The best seeds avoid this.")
+            else:
+                _insights.append("🟢 **No tank tops recorded** across all runs — storage capacity is adequate for this parameter set.")
         for _ins in _insights:
-            st.markdown(f'<div style="background:#f0f4ff;border-left:4px solid #1a3fc4;border-radius:8px;'
-                        f'padding:12px 16px;margin-bottom:10px;font-size:13px;color:#111827;">{_ins}</div>',
-                        unsafe_allow_html=True)
-
+            st.markdown(f'<div style="background:#f0f4ff;border-left:4px solid #1a3fc4;border-radius:8px;' +
+                f'padding:12px 16px;margin-bottom:8px;font-size:13px;color:#111827;">{_ins}</div>',
+                unsafe_allow_html=True)
         st.markdown("<br>", unsafe_allow_html=True)
 
         # ── Criteria weights used ─────────────────────────────────────────────
