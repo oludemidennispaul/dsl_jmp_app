@@ -1622,7 +1622,7 @@ def run_simulation(params):
                     _rcvd = arr.get("received_from", [])
                     if _rcvd:
                         _donors = ", ".join(f"{r['from_shuttle']} ({float(r['volume']):,.0f})" for r in _rcvd)
-                        label = f"{shuttle_name} -> {mname} ({vol:,.2f}) [incl. {_donors}]"
+                        label = f"{shuttle_name} -> {mname} ({vol:,.2f}) [rcvd. {_donors}]"
                     else:
                         label = f"{shuttle_name} -> {mname} ({vol:,.2f})"
                     destination = mname
@@ -1656,7 +1656,7 @@ def run_simulation(params):
                 _rcvd = arr.get("received_from", [])
                 if _rcvd:
                     _donors = ", ".join(f"{r['from_shuttle']} ({float(r['volume']):,.0f})" for r in _rcvd)
-                    label = f"{shuttle_name} -> {mname} ({vol:,.2f}) [incl. {_donors}]"
+                    label = f"{shuttle_name} -> {mname} ({vol:,.2f}) [rcvd. {_donors}]"
                 else:
                     label = f"{shuttle_name} -> {mname} ({vol:,.2f})"
                 destination = mname
