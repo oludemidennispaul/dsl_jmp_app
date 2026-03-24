@@ -90,6 +90,7 @@ html,body,[class*="css"]{font-family:'DM Sans',sans-serif;}
 div.hide-btn{visibility:hidden!important;height:0!important;overflow:hidden!important;
              position:absolute!important;width:0!important;pointer-events:none!important;}
 div.hide-btn *{height:0!important;min-height:0!important;padding:0!important;margin:0!important;}
+[data-testid="stMarkdownContainer"] button{pointer-events:auto!important;cursor:pointer!important;z-index:10!important;}
 /* Hide Streamlit top toolbar and decoration completely */
 [data-testid="stToolbar"]{display:none!important;}
 [data-testid="stDecoration"]{display:none!important;}
@@ -567,7 +568,7 @@ if page == "Build my JMP":
         _col = "#ffffff" if _is_a else "#6b7a99"
         _fw  = "700"     if _is_a else "500"
         _step_html += (
-            f'<button onclick="document.getElementById(\'hsbtn{_sv}\').click()" ' +
+            f'<button onclick="var d=document.getElementById(\'hsbtn{_sv}\');if(d){{var b=d.querySelector(\'button\');if(b)b.click();}}" ' +
             f'style="border:none;outline:none;cursor:pointer;border-radius:10px;padding:9px 20px;' +
             f'font-size:13px;font-family:inherit;transition:all 0.15s;' +
             f'background:{_bg};color:{_col};font-weight:{_fw};">{_step_labels[_sv]}</button>'
@@ -597,7 +598,7 @@ if page == "Build my JMP":
             _col = "#ffffff" if _is_a else "#6b7a99"
             _fw  = "700"     if _is_a else "500"
             _pt_html_btns += (
-                f'<button onclick="document.getElementById(\'hptbtn_{_pti}\').click()" ' +
+                f'<button onclick="var d=document.getElementById(\'hptbtn_{_pti}\');if(d){{var b=d.querySelector(\'button\');if(b)b.click();}}" ' +
                 f'style="border:none;outline:none;cursor:pointer;border-radius:8px;padding:8px 10px;' +
                 f'font-size:12px;font-family:inherit;white-space:nowrap;transition:all 0.15s;' +
                 f'background:{_bg};color:{_col};font-weight:{_fw};">{_ptl}</button>'
