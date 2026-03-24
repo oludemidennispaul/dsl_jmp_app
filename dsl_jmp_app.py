@@ -86,6 +86,10 @@ st.markdown("""
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800&display=swap');
 html,body,[class*="css"]{font-family:'DM Sans',sans-serif;}
 #MainMenu,footer,header{visibility:hidden;height:0;min-height:0;}
+/* Hide the real Streamlit buttons used by HTML toggles */
+div.hide-btn{visibility:hidden!important;height:0!important;overflow:hidden!important;
+             position:absolute!important;width:0!important;pointer-events:none!important;}
+div.hide-btn *{height:0!important;min-height:0!important;padding:0!important;margin:0!important;}
 /* Hide Streamlit top toolbar and decoration completely */
 [data-testid="stToolbar"]{display:none!important;}
 [data-testid="stDecoration"]{display:none!important;}
@@ -575,7 +579,7 @@ if page == "Build my JMP":
     _hc1,_hc2,_hc3 = st.columns(3)
     for _sv,_hc in zip([1,2,3],[_hc1,_hc2,_hc3]):
         with _hc:
-            st.markdown(f'<div id="hsbtn{_sv}" style="visibility:hidden;height:0;overflow:hidden;">', unsafe_allow_html=True)
+            st.markdown(f'<div id="hsbtn{_sv}" class="hide-btn">', unsafe_allow_html=True)
             if st.button(_step_labels[_sv], key=f"_sbtn{_sv}"):
                 st.session_state.build_step = _sv; st.rerun()
             st.markdown("</div>", unsafe_allow_html=True)
@@ -606,7 +610,7 @@ if page == "Build my JMP":
         _pt_cols = st.columns(len(PTABS), gap="small")
         for _pti, (_ptc, _ptl) in enumerate(zip(_pt_cols, PTABS)):
             with _ptc:
-                st.markdown(f'<div id="hptbtn_{_pti}" style="visibility:hidden;height:0;overflow:hidden;">', unsafe_allow_html=True)
+                st.markdown(f'<div id="hptbtn_{_pti}" class="hide-btn">', unsafe_allow_html=True)
                 if st.button(_ptl, key=f"ptbtn_{_pti}"):
                     st.session_state.param_tab = _ptl; st.rerun()
                 st.markdown("</div>", unsafe_allow_html=True)
