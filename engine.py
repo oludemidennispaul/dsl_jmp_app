@@ -822,7 +822,7 @@ def run_simulation(params):
     def _apu():   return active_pause_until[0]
 
     def mother_return_day(filled_on_date):
-        return filled_on_date + timedelta(days=MOTHER_PAUSE_DAYS + 1)
+        return filled_on_date + timedelta(days=MOTHER_PAUSE_DAYS)
 
     def mother_is_active(mname, current_day):
         if mname not in mothers:
