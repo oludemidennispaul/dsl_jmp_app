@@ -559,62 +559,73 @@ if page == "Build my JMP":
         </div>
     </div>""", unsafe_allow_html=True)
 
-    # ── Step segmented control — HTML toggle + hidden real buttons ──────────
+    # ── Step segmented control ───────────────────────────────────────────────
     _step_labels = {1:"⚙️  Parameters", 2:"📂  Upload Files", 3:"▶  Run Simulation"}
-    _step_html = ""
+    _step_css = "<style>"
     for _sv in [1,2,3]:
-        _is_a = step == _sv
-        _bg  = "#1a3fc4" if _is_a else "transparent"
-        _col = "#ffffff" if _is_a else "#6b7a99"
-        _fw  = "700"     if _is_a else "500"
-        _step_html += (
-            f'<button onclick="var d=document.getElementById(\'hsbtn{_sv}\');if(d){{var b=d.querySelector(\'button\');if(b)b.click();}}" ' +
-            f'style="border:none;outline:none;cursor:pointer;border-radius:10px;padding:9px 20px;' +
-            f'font-size:13px;font-family:inherit;transition:all 0.15s;' +
-            f'background:{_bg};color:{_col};font-weight:{_fw};">{_step_labels[_sv]}</button>'
-        )
-    st.markdown(
-        f'<div style="display:inline-flex;background:#eef2ff;border:1.5px solid #c8d3ee;' +
-        f'border-radius:14px;padding:4px;gap:3px;margin-bottom:8px;">{_step_html}</div>',
-        unsafe_allow_html=True)
-    _hc1,_hc2,_hc3 = st.columns(3)
-    for _sv,_hc in zip([1,2,3],[_hc1,_hc2,_hc3]):
-        with _hc:
-            st.markdown(f'<div id="hsbtn{_sv}" class="hide-btn">', unsafe_allow_html=True)
-            if st.button(_step_labels[_sv], key=f"_sbtn{_sv}"):
-                st.session_state.build_step = _sv; st.rerun()
-            st.markdown("</div>", unsafe_allow_html=True)
-
+        _nth = _sv
+        if step == _sv:
+            _step_css += f"""
+            div[data-testid="stHorizontalBlock"]:nth-of-type(1) > div:nth-child({_nth}) button {{
+                background:#1a3fc4!important;color:#fff!important;font-weight:700!important;
+                border:none!important;border-radius:10px!important;box-shadow:0 1px 6px rgba(26,63,196,0.3)!important;}}"""
+        else:
+            _step_css += f"""
+            div[data-testid="stHorizontalBlock"]:nth-of-type(1) > div:nth-child({_nth}) button {{
+                background:transparent!important;color:#6b7a99!important;font-weight:500!important;
+                border:none!important;border-radius:10px!important;}}"""
+    _step_css += """
+    div[data-testid="stHorizontalBlock"]:nth-of-type(1) {{
+        background:#eef2ff!important;border:1.5px solid #c8d3ee!important;
+        border-radius:14px!important;padding:4px!important;gap:3px!important;
+        max-width:660px!important;
+    }}
+    div[data-testid="stHorizontalBlock"]:nth-of-type(1) button:hover {{
+        background:#dde4f5!important;color:#1a3fc4!important;
+    }}
+    </style>"""
+    st.markdown(_step_css, unsafe_allow_html=True)
+    _sc1, _sc2, _sc3 = st.columns(3, gap="small")
+    for _sval, _scol in zip([1,2,3], [_sc1,_sc2,_sc3]):
+        with _scol:
+            if st.button(_step_labels[_sval], key=f"_sbtn{_sval}", use_container_width=True):
+                st.session_state.build_step = _sval; st.rerun()
+    st.markdown("<br>", unsafe_allow_html=True)
     # ── STEP 1: PARAMETERS ───────────────────────────────────────────────────
     if step == 1:
         # Sub-tab segmented control (pure HTML <a> links)
         PTABS = ["🗓️ Simulation","🚢 Mother Vessels","🛥️ Shuttle Vessels","🏭 Storages","🔄 Roving Storage","📋 Prescribed Events"]
         cur_pt = st.session_state.param_tab
-        # Pure HTML toggle bar — each visible button clicks a hidden real Streamlit button
-        _pt_html_btns = ""
+        _ptab_css = "<style>"
         for _pti, _ptl in enumerate(PTABS):
-            _is_a = cur_pt == _ptl
-            _bg  = "#1a3fc4" if _is_a else "transparent"
-            _col = "#ffffff" if _is_a else "#6b7a99"
-            _fw  = "700"     if _is_a else "500"
-            _pt_html_btns += (
-                f'<button onclick="var d=document.getElementById(\'hptbtn_{_pti}\');if(d){{var b=d.querySelector(\'button\');if(b)b.click();}}" ' +
-                f'style="border:none;outline:none;cursor:pointer;border-radius:8px;padding:8px 10px;' +
-                f'font-size:12px;font-family:inherit;white-space:nowrap;transition:all 0.15s;' +
-                f'background:{_bg};color:{_col};font-weight:{_fw};">{_ptl}</button>'
-            )
-        st.markdown(
-            f'<div style="display:inline-flex;background:#eef2ff;border:1.5px solid #c8d3ee;' +
-            f'border-radius:12px;padding:4px;gap:2px;margin-bottom:8px;">{_pt_html_btns}</div>',
-            unsafe_allow_html=True)
-        # Hidden real Streamlit buttons
+            _nth = _pti + 1
+            if cur_pt == _ptl:
+                _ptab_css += f"""
+                div[data-testid="stHorizontalBlock"]:nth-of-type(2) > div:nth-child({_nth}) button {{
+                    background:#1a3fc4!important;color:#fff!important;font-weight:700!important;
+                    border:none!important;border-radius:8px!important;
+                    box-shadow:0 1px 4px rgba(26,63,196,0.2)!important;}}"""
+            else:
+                _ptab_css += f"""
+                div[data-testid="stHorizontalBlock"]:nth-of-type(2) > div:nth-child({_nth}) button {{
+                    background:transparent!important;color:#6b7a99!important;font-weight:500!important;
+                    border:none!important;border-radius:8px!important;}}"""
+        _ptab_css += """
+        div[data-testid="stHorizontalBlock"]:nth-of-type(2) {{
+            background:#eef2ff!important;border:1.5px solid #c8d3ee!important;
+            border-radius:12px!important;padding:4px!important;gap:2px!important;
+        }}
+        div[data-testid="stHorizontalBlock"]:nth-of-type(2) button {{
+            font-size:12px!important;padding:8px 4px!important;transition:all 0.15s!important;}}
+        div[data-testid="stHorizontalBlock"]:nth-of-type(2) button:hover {{
+            background:#dde4f5!important;color:#1a3fc4!important;}}
+        </style>"""
+        st.markdown(_ptab_css, unsafe_allow_html=True)
         _pt_cols = st.columns(len(PTABS), gap="small")
         for _pti, (_ptc, _ptl) in enumerate(zip(_pt_cols, PTABS)):
             with _ptc:
-                st.markdown(f'<div id="hptbtn_{_pti}" class="hide-btn">', unsafe_allow_html=True)
-                if st.button(_ptl, key=f"ptbtn_{_pti}"):
+                if st.button(_ptl, key=f"ptbtn_{_pti}", use_container_width=True):
                     st.session_state.param_tab = _ptl; st.rerun()
-                st.markdown("</div>", unsafe_allow_html=True)
         st.markdown("<br>", unsafe_allow_html=True)
         pt = st.session_state.param_tab
 
