@@ -554,65 +554,63 @@ if page == "Build my JMP":
         </div>
     </div>""", unsafe_allow_html=True)
 
-    # ── Step segmented control ───────────────────────────────────────────────
+    # ── Step segmented control — HTML toggle + hidden real buttons ──────────
     _step_labels = {1:"⚙️  Parameters", 2:"📂  Upload Files", 3:"▶  Run Simulation"}
-    # Build per-button CSS using Streamlit's key attribute on the button element
-    _step_css = """<style>
-    button[kind="secondary"]{border-radius:10px!important;border:none!important;
-        font-size:13px!important;transition:all 0.15s!important;}
-    """
+    _step_html = ""
     for _sv in [1,2,3]:
-        if step == _sv:
-            _step_css += f"""div:has(>button[data-testid="baseButton-secondary"][key="_sbtn{_sv}"]){{}}
-            button[data-testid="baseButton-secondary"][aria-label="{_step_labels[_sv]}"]{{
-                background:#1a3fc4!important;color:#fff!important;font-weight:700!important;
-                box-shadow:0 1px 6px rgba(26,63,196,0.3)!important;}}
-            """
-        else:
-            _step_css += f"""
-            button[data-testid="baseButton-secondary"][aria-label="{_step_labels[_sv]}"]{{
-                background:transparent!important;color:#6b7a99!important;font-weight:500!important;}}
-            """
-    _step_css += "</style>"
-    st.markdown(_step_css, unsafe_allow_html=True)
-    st.markdown('<div style="display:inline-flex;background:#eef2ff;border:1.5px solid #c8d3ee;'
-                'border-radius:14px;padding:4px;gap:3px;margin-bottom:12px;">',
-                unsafe_allow_html=True)
-    _sc1, _sc2, _sc3 = st.columns(3, gap="small")
-    for _sval, _scol in zip([1,2,3], [_sc1,_sc2,_sc3]):
-        with _scol:
-            if st.button(_step_labels[_sval], key=f"_sbtn{_sval}", use_container_width=True):
-                st.session_state.build_step = _sval; st.rerun()
-    st.markdown("</div><br>", unsafe_allow_html=True)
+        _is_a = step == _sv
+        _bg  = "#1a3fc4" if _is_a else "transparent"
+        _col = "#ffffff" if _is_a else "#6b7a99"
+        _fw  = "700"     if _is_a else "500"
+        _step_html += (
+            f'<button onclick="document.getElementById(\'hsbtn{_sv}\').click()" ' +
+            f'style="border:none;outline:none;cursor:pointer;border-radius:10px;padding:9px 20px;' +
+            f'font-size:13px;font-family:inherit;transition:all 0.15s;' +
+            f'background:{_bg};color:{_col};font-weight:{_fw};">{_step_labels[_sv]}</button>'
+        )
+    st.markdown(
+        f'<div style="display:inline-flex;background:#eef2ff;border:1.5px solid #c8d3ee;' +
+        f'border-radius:14px;padding:4px;gap:3px;margin-bottom:8px;">{_step_html}</div>',
+        unsafe_allow_html=True)
+    _hc1,_hc2,_hc3 = st.columns(3)
+    for _sv,_hc in zip([1,2,3],[_hc1,_hc2,_hc3]):
+        with _hc:
+            st.markdown(f'<div id="hsbtn{_sv}" style="visibility:hidden;height:0;overflow:hidden;">', unsafe_allow_html=True)
+            if st.button(_step_labels[_sv], key=f"_sbtn{_sv}"):
+                st.session_state.build_step = _sv; st.rerun()
+            st.markdown("</div>", unsafe_allow_html=True)
 
     # ── STEP 1: PARAMETERS ───────────────────────────────────────────────────
     if step == 1:
         # Sub-tab segmented control (pure HTML <a> links)
         PTABS = ["🗓️ Simulation","🚢 Mother Vessels","🛥️ Shuttle Vessels","🏭 Storages","🔄 Roving Storage","📋 Prescribed Events"]
         cur_pt = st.session_state.param_tab
-        _ptab_css = "<style>"
+        # Pure HTML toggle bar — each visible button clicks a hidden real Streamlit button
+        _pt_html_btns = ""
         for _pti, _ptl in enumerate(PTABS):
-            if cur_pt == _ptl:
-                _ptab_css += f"""button[data-testid="baseButton-secondary"][aria-label="{_ptl}"]{{
-                    background:#1a3fc4!important;color:#fff!important;font-weight:700!important;
-                    box-shadow:0 1px 4px rgba(26,63,196,0.2)!important;}}"""
-            else:
-                _ptab_css += f"""button[data-testid="baseButton-secondary"][aria-label="{_ptl}"]{{
-                    background:transparent!important;color:#6b7a99!important;font-weight:500!important;}}"""
-        _ptab_css += """button[data-testid="baseButton-secondary"]{
-            border:none!important;border-radius:8px!important;
-            font-size:12px!important;transition:all 0.15s!important;padding:8px 4px!important;}
-        </style>"""
-        st.markdown(_ptab_css, unsafe_allow_html=True)
-        st.markdown('<div style="display:flex;background:#eef2ff;border:1.5px solid #c8d3ee;'
-                    'border-radius:12px;padding:4px;gap:2px;margin-bottom:12px;">',
-                    unsafe_allow_html=True)
+            _is_a = cur_pt == _ptl
+            _bg  = "#1a3fc4" if _is_a else "transparent"
+            _col = "#ffffff" if _is_a else "#6b7a99"
+            _fw  = "700"     if _is_a else "500"
+            _pt_html_btns += (
+                f'<button onclick="document.getElementById(\'hptbtn_{_pti}\').click()" ' +
+                f'style="border:none;outline:none;cursor:pointer;border-radius:8px;padding:8px 10px;' +
+                f'font-size:12px;font-family:inherit;white-space:nowrap;transition:all 0.15s;' +
+                f'background:{_bg};color:{_col};font-weight:{_fw};">{_ptl}</button>'
+            )
+        st.markdown(
+            f'<div style="display:inline-flex;background:#eef2ff;border:1.5px solid #c8d3ee;' +
+            f'border-radius:12px;padding:4px;gap:2px;margin-bottom:8px;">{_pt_html_btns}</div>',
+            unsafe_allow_html=True)
+        # Hidden real Streamlit buttons
         _pt_cols = st.columns(len(PTABS), gap="small")
         for _pti, (_ptc, _ptl) in enumerate(zip(_pt_cols, PTABS)):
             with _ptc:
-                if st.button(_ptl, key=f"ptbtn_{_pti}", use_container_width=True):
+                st.markdown(f'<div id="hptbtn_{_pti}" style="visibility:hidden;height:0;overflow:hidden;">', unsafe_allow_html=True)
+                if st.button(_ptl, key=f"ptbtn_{_pti}"):
                     st.session_state.param_tab = _ptl; st.rerun()
-        st.markdown("</div><br>", unsafe_allow_html=True)
+                st.markdown("</div>", unsafe_allow_html=True)
+        st.markdown("<br>", unsafe_allow_html=True)
         pt = st.session_state.param_tab
 
         # ── Simulation ──────────────────────────────────────────────────────
@@ -1106,8 +1104,8 @@ Run the simulation N times with different seeds, score each run against your cri
 and surface the <strong>top 5 best outcomes</strong>.</div></div>''', unsafe_allow_html=True)
             st.markdown("<br>", unsafe_allow_html=True)
 
-            mc_n = st.slider("Number of runs", min_value=10, max_value=200,
-                             value=50, step=10, key="mc_n_runs")
+            mc_n = st.slider("Number of runs", min_value=10, max_value=500,
+                             value=300, step=10, key="mc_n_runs")
 
             st.markdown('<div style="font-size:11px;font-weight:700;color:#6b7a99;text-transform:uppercase;letter-spacing:0.8px;margin:12px 0 6px;">Ranking Criteria Weights</div>', unsafe_allow_html=True)
             st.markdown('<div style="font-size:11px;color:#9aa3bc;margin-bottom:10px;">Set to 0 to exclude a criterion</div>', unsafe_allow_html=True)
@@ -1215,7 +1213,7 @@ elif page == "Dashboard":
         kpi_data = [
             ("Total Volume",     f"{kpis['total_vol']:,}", "bbls discharged"),
             ("NEPL Volume",      f"{kpis['nepl_vol']:,}", "NEPL contribution"),
-            ("3rd Party Volume", f"{kpis['tp_vol']:,}",   "Third party contribution"),
+            ("3rd Party Volume", f"{kpis['tp_vol']:,}",   "External contribution"),
             ("SBM Trips",        str(kpis['trips']),       "Injections completed"),
         ]
     else:
