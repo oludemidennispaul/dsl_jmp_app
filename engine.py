@@ -332,7 +332,11 @@ def load_tide_lookup_from_pdf(pdf_path_or_file) -> dict:
     Accepts either a file path string or an uploaded file object (BytesIO / UploadedFile).
     """
     try:
-        from PyPDF2 import PdfReader
+        # Try pypdf first (installed on Streamlit Cloud), fall back to PyPDF2 (local)
+        try:
+            from pypdf import PdfReader
+        except ImportError:
+            from PyPDF2 import PdfReader
         import re as _re
         from datetime import datetime as _dt
         reader = PdfReader(pdf_path_or_file)
@@ -1622,7 +1626,7 @@ def run_simulation(params):
                     _rcvd = arr.get("received_from", [])
                     if _rcvd:
                         _donors = ", ".join(f"{r['from_shuttle']} ({float(r['volume']):,.0f})" for r in _rcvd)
-                        label = f"{shuttle_name} -> {mname} ({vol:,.2f}) [rcvd. {_donors}]"
+                        label = f"{shuttle_name} -> {mname} ({vol:,.2f}) [incl. {_donors}]"
                     else:
                         label = f"{shuttle_name} -> {mname} ({vol:,.2f})"
                     destination = mname
@@ -1656,7 +1660,7 @@ def run_simulation(params):
                 _rcvd = arr.get("received_from", [])
                 if _rcvd:
                     _donors = ", ".join(f"{r['from_shuttle']} ({float(r['volume']):,.0f})" for r in _rcvd)
-                    label = f"{shuttle_name} -> {mname} ({vol:,.2f}) [rcvd. {_donors}]"
+                    label = f"{shuttle_name} -> {mname} ({vol:,.2f}) [incl. {_donors}]"
                 else:
                     label = f"{shuttle_name} -> {mname} ({vol:,.2f})"
                 destination = mname
