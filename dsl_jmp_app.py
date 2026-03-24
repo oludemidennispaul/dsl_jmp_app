@@ -1215,7 +1215,7 @@ elif page == "Dashboard":
         kpi_data = [
             ("Total Volume",     f"{kpis['total_vol']:,}", "bbls discharged"),
             ("NEPL Volume",      f"{kpis['nepl_vol']:,}", "NEPL contribution"),
-            ("3rd Party Volume", f"{kpis['tp_vol']:,}",   "External contribution"),
+            ("3rd Party Volume", f"{kpis['tp_vol']:,}",   "Third party contribution"),
             ("SBM Trips",        str(kpis['trips']),       "Injections completed"),
         ]
     else:
