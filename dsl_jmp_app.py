@@ -1423,18 +1423,35 @@ elif page == "Simulation Table":
             "SanJulian":    "#0F4C5C",
         }
 
+        # Custom colour thresholds per storage (Green < yellow_lo, Yellow = yellow_lo-red_lo, Red > red_lo)
+        STORAGE_COLOR_RULES = {
+            "Whisky Star XLV":  {"green_hi": 59500,  "yellow_hi": 71740},
+            "Westmore_Belema":  {"green_hi": 157500, "yellow_hi": 189900},
+            "Dawes Island":     {"green_hi": 45000,  "yellow_hi": 54860},
+            "Jasmine S_SOKU":   {"green_hi": 189900, "yellow_hi": 228000},
+            "Chapel_OML24":     {"green_hi": 189900, "yellow_hi": 228000},
+            "Awoba_OML24":      {"green_hi": 70000,  "yellow_hi": 84400},
+        }
+
         def _style_cell(val, col_name):
             if col_name.endswith(" Stock") and col_name.replace(" Stock","") in mother_caps:
                 mname = col_name.replace(" Stock","")
                 cap = mother_caps.get(mname, 1)
                 v = float(val) if val else 0
-                if v >= cap:   return "background-color:#e84545;color:white;font-weight:600"
+                if v >= cap:     return "background-color:#e84545;color:white;font-weight:600"
                 if v >= 0.7*cap: return "background-color:#ffd966;color:black"
                 return ""
             if col_name.endswith(" Stock") and col_name.replace(" Stock","") in storage_info:
                 sname = col_name.replace(" Stock","")
-                si = storage_info[sname]
                 v = float(val) if val else 0
+                # Custom rules for specific storages
+                if sname in STORAGE_COLOR_RULES:
+                    rules = STORAGE_COLOR_RULES[sname]
+                    if v < rules["green_hi"]:   return "background-color:#00B95F;color:white;font-weight:600"
+                    if v <= rules["yellow_hi"]: return "background-color:#ffd966;color:black"
+                    return "background-color:#e84545;color:white;font-weight:600"
+                # Default rule for all other storages
+                si = storage_info[sname]
                 if v <= si["min_thr"]: return "background-color:#00B95F;color:white;font-weight:600"
                 if v >= si["cap"]:     return "background-color:#e84545;color:white;font-weight:600"
                 return "background-color:#ffd966;color:black"
