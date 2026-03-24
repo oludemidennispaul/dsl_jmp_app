@@ -1682,7 +1682,8 @@ elif page == "Monte Carlo":
         try:
             import plotly.express as px
             fig_dist = px.histogram(df_kpi, x="score", nbins=30,
-                color_discrete_sequence=["#1a3fc4"])
+                color_discrete_sequence=["#1a3fc4"],
+                title=f"Score Distribution across {n_runs} runs")
             # mark top 5
             for i, seed in enumerate(top5seeds):
                 sc = df_kpi[df_kpi["seed"] == seed]["score"].iloc[0]
