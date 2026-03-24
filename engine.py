@@ -788,14 +788,19 @@ def run_simulation(params):
     # ── 9. Manual override events from session state ───────────────────────────
     MANUAL_EVENTS = []
     for ev in params.get("manual_events", []):
+        _ev_action  = str(ev.get("action", "load")).strip().lower()
+        _ev_storage = ev.get("storage")
+        _ev_mother  = ev.get("mother")
+        _ev_shuttle = ev.get("shuttle", "")
+        _ev_tag     = f"manual_{_ev_shuttle}_{_ev_storage or _ev_mother or _ev_action}"
         MANUAL_EVENTS.append({
             "date":    _to_dt(ev["date"]),
-            "action":  "load",
-            "shuttle": ev["shuttle"],
-            "storage": ev["storage"],
+            "action":  _ev_action,
+            "shuttle": _ev_shuttle,
+            "storage": _ev_storage,
             "volume":  float(ev["volume"]) if ev.get("volume") else None,
-            "mother":  None,
-            "tag":     f"manual_{ev['shuttle']}_{ev['storage']}",
+            "mother":  _ev_mother,
+            "tag":     _ev_tag,
         })
 
     # ── 10. Third-party vessels (deep copy so next_arrival advances per run) ───
@@ -1345,11 +1350,59 @@ def run_simulation(params):
             if _to_dt(ev["date"]).date() != current_day.date():
                 continue
             shuttle_name = ev.get("shuttle")
-            stg_name_raw = ev.get("storage")
-            stg_name = norm_storage_name(stg_name_raw)
-            if shuttle_name not in shuttles or stg_name not in storages:
-                continue
+            ev_action    = str(ev.get("action","load")).strip().lower()
+
             if is_whisky_shuttle_blocked_today(shuttle_name, current_day):
+                continue
+            if shuttle_name not in shuttles:
+                continue
+
+            # ── DISCHARGE event ───────────────────────────────────────────────
+            if ev_action == "discharge":
+                mother_name = ev.get("mother")
+                if not mother_name or mother_name not in mothers:
+                    continue
+                if not mother_is_active(mother_name, current_day):
+                    continue
+                if mother_name in mothers_loaded_today:
+                    continue
+                if shuttle_name in discharged_shuttles_today:
+                    continue
+                sh = shuttles[shuttle_name]
+                eff_cap = float(sh.get("eff_cap", sh["cap"]))
+                vol = float(ev["volume"]) if ev.get("volume") else eff_cap
+                if vol <= 0:
+                    continue
+                src = ev.get("storage")
+                inc_api = get_incoming_api(src, THIRD_PARTY_NAMES) if src else None
+                accepted = apply_mother_discharge(
+                    mother_name, vol, current_day,
+                    prescribed=False, incoming_api=inc_api,
+                )
+                if not accepted:
+                    continue
+                label = f"{shuttle_name} -> {mother_name} ({vol:,.2f})"
+                for slot in range(1, 5):
+                    if daily_record.get(f"Discharge {slot}") in (None, "", " "):
+                        daily_record[f"Discharge {slot}"] = label
+                        break
+                sim_discharge_today.append({
+                    "date": pd.to_datetime(current_day).normalize(),
+                    "mother": mother_name, "vessel": shuttle_name,
+                    "source": src, "production_site": SITE_TO_ROW.get(str(src or "").strip(), "Unknown"),
+                    "is_third_party": False, "volume": float(vol), "label": label,
+                })
+                mothers_loaded_today.add(mother_name)
+                discharged_shuttles_today.add(shuttle_name)
+                sh["available_on"] = current_day + timedelta(days=1)
+                sh["waiting_for_mother"] = False
+                sh["cargo_info"] = None
+                manual_shuttles_used_today.add(shuttle_name)
+                continue
+
+            # ── LOAD event ────────────────────────────────────────────────────
+            stg_name = norm_storage_name(ev.get("storage"))
+            if stg_name not in storages:
                 continue
             sh = shuttles[shuttle_name]
             if not (current_day >= sh.get("available_on", sim_start)
