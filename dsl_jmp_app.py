@@ -561,36 +561,33 @@ if page == "Build my JMP":
 
     # ── Step segmented control ───────────────────────────────────────────────
     _step_labels = {1:"⚙️  Parameters", 2:"📂  Upload Files", 3:"▶  Run Simulation"}
+    # Scope CSS strictly to buttons with known keys to avoid affecting other elements
+    _active_bg = "#1a3fc4"; _active_col = "#fff"; _active_fw = "700"
+    _inact_bg  = "transparent"; _inact_col = "#6b7a99"; _inact_fw = "500"
     _step_css = "<style>"
     for _sv in [1,2,3]:
-        _nth = _sv
-        if step == _sv:
-            _step_css += f"""
-            div[data-testid="stHorizontalBlock"]:nth-of-type(1) > div:nth-child({_nth}) button {{
-                background:#1a3fc4!important;color:#fff!important;font-weight:700!important;
-                border:none!important;border-radius:10px!important;box-shadow:0 1px 6px rgba(26,63,196,0.3)!important;}}"""
-        else:
-            _step_css += f"""
-            div[data-testid="stHorizontalBlock"]:nth-of-type(1) > div:nth-child({_nth}) button {{
-                background:transparent!important;color:#6b7a99!important;font-weight:500!important;
-                border:none!important;border-radius:10px!important;}}"""
-    _step_css += """
-    div[data-testid="stHorizontalBlock"]:nth-of-type(1) {{
-        background:#eef2ff!important;border:1.5px solid #c8d3ee!important;
-        border-radius:14px!important;padding:4px!important;gap:3px!important;
-        max-width:660px!important;
-    }}
-    div[data-testid="stHorizontalBlock"]:nth-of-type(1) button:hover {{
-        background:#dde4f5!important;color:#1a3fc4!important;
-    }}
-    </style>"""
+        _is_a = step == _sv
+        _step_css += f"""
+        div.step-seg-{_sv} button{{
+            background:{"#1a3fc4" if _is_a else "transparent"}!important;
+            color:{"#fff" if _is_a else "#6b7a99"}!important;
+            font-weight:{"700" if _is_a else "500"}!important;
+            border:none!important;border-radius:10px!important;font-size:13px!important;
+            {"box-shadow:0 1px 6px rgba(26,63,196,0.3)!important;" if _is_a else ""}
+        }}
+        div.step-seg-{_sv} button:hover{{background:#dde4f5!important;color:#1a3fc4!important;}}
+        """
+    _step_css += ".step-seg-wrap{background:#eef2ff;border:1.5px solid #c8d3ee;border-radius:14px;padding:4px;display:flex;gap:3px;max-width:660px;margin-bottom:8px;}</style>"
     st.markdown(_step_css, unsafe_allow_html=True)
+    st.markdown('<div class="step-seg-wrap">', unsafe_allow_html=True)
     _sc1, _sc2, _sc3 = st.columns(3, gap="small")
     for _sval, _scol in zip([1,2,3], [_sc1,_sc2,_sc3]):
         with _scol:
+            st.markdown(f'<div class="step-seg-{_sval}">', unsafe_allow_html=True)
             if st.button(_step_labels[_sval], key=f"_sbtn{_sval}", use_container_width=True):
                 st.session_state.build_step = _sval; st.rerun()
-    st.markdown("<br>", unsafe_allow_html=True)
+            st.markdown('</div>', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
     # ── STEP 1: PARAMETERS ───────────────────────────────────────────────────
     if step == 1:
         # Sub-tab segmented control (pure HTML <a> links)
@@ -598,35 +595,29 @@ if page == "Build my JMP":
         cur_pt = st.session_state.param_tab
         _ptab_css = "<style>"
         for _pti, _ptl in enumerate(PTABS):
-            _nth = _pti + 1
-            if cur_pt == _ptl:
-                _ptab_css += f"""
-                div[data-testid="stHorizontalBlock"]:nth-of-type(2) > div:nth-child({_nth}) button {{
-                    background:#1a3fc4!important;color:#fff!important;font-weight:700!important;
-                    border:none!important;border-radius:8px!important;
-                    box-shadow:0 1px 4px rgba(26,63,196,0.2)!important;}}"""
-            else:
-                _ptab_css += f"""
-                div[data-testid="stHorizontalBlock"]:nth-of-type(2) > div:nth-child({_nth}) button {{
-                    background:transparent!important;color:#6b7a99!important;font-weight:500!important;
-                    border:none!important;border-radius:8px!important;}}"""
-        _ptab_css += """
-        div[data-testid="stHorizontalBlock"]:nth-of-type(2) {{
-            background:#eef2ff!important;border:1.5px solid #c8d3ee!important;
-            border-radius:12px!important;padding:4px!important;gap:2px!important;
-        }}
-        div[data-testid="stHorizontalBlock"]:nth-of-type(2) button {{
-            font-size:12px!important;padding:8px 4px!important;transition:all 0.15s!important;}}
-        div[data-testid="stHorizontalBlock"]:nth-of-type(2) button:hover {{
-            background:#dde4f5!important;color:#1a3fc4!important;}}
-        </style>"""
+            _is_a = cur_pt == _ptl
+            _ptab_css += f"""
+            div.ptab-seg-{_pti} button{{
+                background:{"#1a3fc4" if _is_a else "transparent"}!important;
+                color:{"#fff" if _is_a else "#6b7a99"}!important;
+                font-weight:{"700" if _is_a else "500"}!important;
+                border:none!important;border-radius:8px!important;
+                font-size:12px!important;padding:8px 4px!important;
+                {"box-shadow:0 1px 4px rgba(26,63,196,0.2)!important;" if _is_a else ""}
+            }}
+            div.ptab-seg-{_pti} button:hover{{background:#dde4f5!important;color:#1a3fc4!important;}}
+            """
+        _ptab_css += ".ptab-seg-wrap{background:#eef2ff;border:1.5px solid #c8d3ee;border-radius:12px;padding:4px;display:flex;gap:2px;margin-bottom:8px;}</style>"
         st.markdown(_ptab_css, unsafe_allow_html=True)
+        st.markdown('<div class="ptab-seg-wrap">', unsafe_allow_html=True)
         _pt_cols = st.columns(len(PTABS), gap="small")
         for _pti, (_ptc, _ptl) in enumerate(zip(_pt_cols, PTABS)):
             with _ptc:
+                st.markdown(f'<div class="ptab-seg-{_pti}">', unsafe_allow_html=True)
                 if st.button(_ptl, key=f"ptbtn_{_pti}", use_container_width=True):
                     st.session_state.param_tab = _ptl; st.rerun()
-        st.markdown("<br>", unsafe_allow_html=True)
+                st.markdown('</div>', unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
         pt = st.session_state.param_tab
 
         # ── Simulation ──────────────────────────────────────────────────────
