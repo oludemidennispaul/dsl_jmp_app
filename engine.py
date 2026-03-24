@@ -1966,6 +1966,44 @@ def run_simulation(params):
     else:
         mother_balance = 0.0
 
+    # ── Risk metrics ──────────────────────────────────────────────────────────
+    _tank_top_dates   = []   # dates where any storage hit cap
+    _backlog_dates    = []   # dates where shuttles waiting > 1
+    _idle_dates       = []   # dates where mother free but shuttle waiting
+
+    for _, _row in df.iterrows():
+        _day = _row["Date"]
+        # Tank top: any storage at or above cap
+        for _stg_name, _stg_cfg in storages.items():
+            _scol = f"{_stg_name} Stock"
+            if _scol in _row and float(_row[_scol] or 0) >= float(_stg_cfg.get("cap", 1)):
+                _tank_top_dates.append(_day)
+                break
+        # Backlog: shuttles in transit > avg (proxy: transit count above 5)
+        _transit = int(_row.get("Shuttles In Transit", 0) or 0)
+        if _transit > 5:
+            _backlog_dates.append(_day)
+        # Idle mother: no discharge recorded but mother below cap and shuttles in transit
+        _no_discharge = all(
+            pd.isna(_row.get(f"Discharge {_s}")) or str(_row.get(f"Discharge {_s}", "")).strip() == ""
+            for _s in range(1, 5)
+        )
+        if _no_discharge and _transit > 0:
+            for _mn in mothers:
+                _mcol = f"{_mn} Stock"
+                if _mcol in _row:
+                    _mstock = float(_row[_mcol] or 0)
+                    _mcap   = float(mothers[_mn].get("cap", 1))
+                    if _mstock < _mcap * 0.95:  # mother not full but no discharge
+                        _idle_dates.append(_day)
+                        break
+
+    _has_tank_top   = len(_tank_top_dates) > 0
+    _first_tank_top = str(min(_tank_top_dates))[:10] if _tank_top_dates else None
+    _has_backlog    = len(_backlog_dates) > 0
+    _first_backlog  = str(min(_backlog_dates))[:10] if _backlog_dates else None
+    _idle_days      = len(set(str(d)[:10] for d in _idle_dates))
+
     kpis = {
         "total_vol":       total_vol,
         "nepl_vol":        nepl_vol,
@@ -1974,6 +2012,12 @@ def run_simulation(params):
         "shuttle_vol":     int(total_shuttle_vol),
         "shuttle_balance": float(shuttle_balance),
         "mother_balance":  float(mother_balance),
+        # Risk metrics
+        "has_tank_top":    _has_tank_top,
+        "first_tank_top":  _first_tank_top,
+        "has_backlog":     _has_backlog,
+        "first_backlog":   _first_backlog,
+        "idle_days":       _idle_days,
     }
 
     # ── Monthly aggregates ─────────────────────────────────────────────────────
