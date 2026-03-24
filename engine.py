@@ -1618,7 +1618,13 @@ def run_simulation(params):
                         arr["next_attempt"] = (current_day + timedelta(days=1)).date()
                         new_pending.append(arr)
                         continue
-                    label = f"{shuttle_name} -> {mname} ({vol:,.2f})"
+                    # Include STS donor info if this shuttle received cargo from another
+                    _rcvd = arr.get("received_from", [])
+                    if _rcvd:
+                        _donors = ", ".join(f"{r['from_shuttle']} ({float(r['volume']):,.0f})" for r in _rcvd)
+                        label = f"{shuttle_name} -> {mname} ({vol:,.2f}) [incl. {_donors}]"
+                    else:
+                        label = f"{shuttle_name} -> {mname} ({vol:,.2f})"
                     destination = mname
                 else:
                     if sanjulian_has_received_today(current_day):
@@ -1647,7 +1653,12 @@ def run_simulation(params):
                     arr["next_attempt"] = (current_day + timedelta(days=1)).date()
                     new_pending.append(arr)
                     continue
-                label = f"{shuttle_name} -> {mname} ({vol:,.2f})"
+                _rcvd = arr.get("received_from", [])
+                if _rcvd:
+                    _donors = ", ".join(f"{r['from_shuttle']} ({float(r['volume']):,.0f})" for r in _rcvd)
+                    label = f"{shuttle_name} -> {mname} ({vol:,.2f}) [incl. {_donors}]"
+                else:
+                    label = f"{shuttle_name} -> {mname} ({vol:,.2f})"
                 destination = mname
 
             for slot in range(1, 5):
