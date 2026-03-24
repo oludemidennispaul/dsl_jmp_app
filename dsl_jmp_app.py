@@ -835,19 +835,35 @@ SanJulian transloads to next available mother (1-day lead).
                 st.markdown('<div class="sec-title"><span>M</span> Manual Override Events</div>', unsafe_allow_html=True)
                 sh_names  = [s["name"] for s in st.session_state.shuttle_vessels]
                 stg_names = [s["name"] for s in st.session_state.storage_vessels]
+                mother_names_ev = [m["name"] for m in st.session_state.mother_vessels]
                 updated_ev = []
                 for i,ev in enumerate(st.session_state.manual_events):
                     st.markdown(f'<div style="font-size:10.5px;font-weight:700;color:#a0abbe;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:4px;">Event {i+1}</div>', unsafe_allow_html=True)
+                    # Action type selector
+                    _action = ev.get("action", "load")
+                    _act_idx = 0 if _action == "load" else 1
+                    _act = st.radio("Action", ["load","discharge"], index=_act_idx,
+                                    horizontal=True, key=f"mev_act_{i}", label_visibility="collapsed")
                     mc1,mc2 = st.columns(2)
                     with mc1:
                         d  = st.date_input("Date", value=ev["date"], key=f"mev_d_{i}")
-                        si = sh_names.index(ev["shuttle"]) if ev["shuttle"] in sh_names else 0
+                        si = sh_names.index(ev["shuttle"]) if ev.get("shuttle") in sh_names else 0
                         sh = st.selectbox("Shuttle", sh_names, index=si, key=f"mev_sh_{i}", label_visibility="collapsed")
                     with mc2:
-                        gi = stg_names.index(ev["storage"]) if ev["storage"] in stg_names else 0
-                        sg = st.selectbox("Storage", stg_names, index=gi, key=f"mev_stg_{i}", label_visibility="collapsed")
-                        vl = st.number_input("Vol", value=int(ev["volume"]), min_value=0, step=1000, key=f"mev_v_{i}", label_visibility="collapsed")
-                    updated_ev.append({"date":d,"shuttle":sh,"storage":sg,"volume":vl})
+                        if _act == "load":
+                            st.markdown('<div class="plabel">Storage</div>', unsafe_allow_html=True)
+                            _stg_val = ev.get("storage", stg_names[0] if stg_names else "")
+                            gi = stg_names.index(_stg_val) if _stg_val in stg_names else 0
+                            sg = st.selectbox("Storage", stg_names, index=gi, key=f"mev_stg_{i}", label_visibility="collapsed")
+                            mo = ev.get("mother", None)
+                        else:
+                            st.markdown('<div class="plabel">Mother Vessel</div>', unsafe_allow_html=True)
+                            _mo_val = ev.get("mother", mother_names_ev[0] if mother_names_ev else "")
+                            mi = mother_names_ev.index(_mo_val) if _mo_val in mother_names_ev else 0
+                            mo = st.selectbox("Mother", mother_names_ev, index=mi, key=f"mev_mo_{i}", label_visibility="collapsed")
+                            sg = ev.get("storage", None)
+                        vl = st.number_input("Volume (bbls)", value=int(ev.get("volume") or 0), min_value=0, step=1000, key=f"mev_v_{i}")
+                    updated_ev.append({"date":d,"action":_act,"shuttle":sh,"storage":sg,"mother":mo,"volume":vl})
                     rc,_ = st.columns([1,3])
                     with rc:
                         st.markdown('<div class="rm-btn">', unsafe_allow_html=True)
@@ -856,8 +872,13 @@ SanJulian transloads to next available mother (1-day lead).
                     st.markdown('<hr style="border:none;border-top:1px solid #f0f3fb;margin:8px 0;">', unsafe_allow_html=True)
                 st.session_state.manual_events = updated_ev
                 st.markdown('<div class="add-btn">', unsafe_allow_html=True)
-                if st.button("＋ Add Manual Event", key="add_ev"):
-                    st.session_state.manual_events.append({"date":date(2026,3,13),"shuttle":sh_names[0] if sh_names else "Sherlock","storage":stg_names[0] if stg_names else "Chapel_OML24","volume":85000}); st.rerun()
+                ac1, ac2 = st.columns(2)
+                with ac1:
+                    if st.button("＋ Add Load Event", key="add_ev_load"):
+                        st.session_state.manual_events.append({"date":date(2026,3,13),"action":"load","shuttle":sh_names[0] if sh_names else "Sherlock","storage":stg_names[0] if stg_names else "Chapel_OML24","mother":None,"volume":85000}); st.rerun()
+                with ac2:
+                    if st.button("＋ Add Discharge Event", key="add_ev_disch"):
+                        st.session_state.manual_events.append({"date":date(2026,3,13),"action":"discharge","shuttle":sh_names[0] if sh_names else "Sherlock","storage":None,"mother":mother_names_ev[0] if mother_names_ev else "Bryanston","volume":85000}); st.rerun()
                 st.markdown("</div>", unsafe_allow_html=True)
 
     elif step == 2:
