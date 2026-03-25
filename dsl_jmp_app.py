@@ -496,36 +496,8 @@ with st.sidebar:
                 st.session_state.page = label; st.rerun()
             st.markdown("</div>", unsafe_allow_html=True)
 
-# ── MAIN ───────────────────────────────────────────────────────────────────────
-# Handle tab navigation via query params
-_qp = st.query_params
-if "build_step" in _qp:
-    try: st.session_state.build_step = int(_qp["build_step"])
-    except: pass
-    st.query_params.clear(); st.rerun()
-if "param_tab" in _qp:
-    import urllib.parse
-    _pt = urllib.parse.unquote(_qp["param_tab"])
-    if _pt in ["🗓️ Simulation","🚢 Mother Vessels","🛥️ Shuttle Vessels","🏭 Storages","🔄 Roving Storage","📋 Prescribed Events"]:
-        st.session_state.param_tab = _pt
-    st.query_params.clear(); st.rerun()
-
-page = st.session_state.page
-st.markdown('<div style="padding:0.3rem 2.0rem 2rem;">', unsafe_allow_html=True)
-
-# Handle tab navigation via query params
-import urllib.parse as _ulp
-_qp = st.query_params
-if "build_step" in _qp:
-    try: st.session_state.build_step = int(_qp["build_step"])
-    except: pass
-    st.query_params.clear(); st.rerun()
-if "param_tab" in _qp:
-    _pt = _ulp.unquote(_qp["param_tab"])
-    _valid_tabs = ["🗓️ Simulation","🚢 Mother Vessels","🛥️ Shuttle Vessels","🏭 Storages","🔄 Roving Storage","📋 Prescribed Events"]
-    if _pt in _valid_tabs:
-        st.session_state.param_tab = _pt
-    st.query_params.clear(); st.rerun()
+# ── MAIN ─────────────────────────────────────────────────────────────────────
+# Navigation is handled purely via st.session_state — no query params needed
 
 page = st.session_state.page
 st.markdown('<div style="padding:0.3rem 2.0rem 2rem;">', unsafe_allow_html=True)
