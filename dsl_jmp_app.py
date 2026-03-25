@@ -726,6 +726,8 @@ if page == "Build my JMP":
                 valid = [a for a in sh.get("allowed",[]) if a in all_stg]
                 allowed = st.multiselect("ap", options=all_stg, default=valid, key=f"sh_ap_{i}", label_visibility="collapsed", placeholder="Select allowed storages…")
                 st.markdown("</div>", unsafe_allow_html=True)
+                if active and len(allowed) == 0:
+                    st.warning(f"⚠️ **{name}** has no allowed load points — it will not participate in the simulation until at least one storage is assigned.", icon="⚠️")
                 updated.append({"name":name,"cap":cap,"lead":lead,"start":start,"active":active,"allowed":allowed})
             st.session_state.shuttle_vessels = updated
             st.markdown("<br>", unsafe_allow_html=True)
@@ -1416,12 +1418,23 @@ elif page == "Simulation Table":
         storage_info = {s["name"]: {"min_thr": s["min_thr"], "cap": s["cap"]}
                         for s in st.session_state.storage_vessels}
 
-        VESSEL_COLORS = {
-            "Rathbone":     "#f4b183","Woodstock":    "#a9d18e","Laphroaig":    "#9dc3e6",
-            "Bagshot":      "#bdd7ee","Bedford":      "#ffe699","Sherlock":     "#e6ccff",
-            "Balham":       "#c6e0b4","MT Watson":    "#C65911","MT Santa Monica":"#1F6F78",
-            "SanJulian":    "#0F4C5C",
+        # Base colours for known vessels
+        _BASE_VESSEL_COLORS = {
+            "Rathbone":       "#f4b183","Woodstock":      "#a9d18e","Laphroaig":    "#9dc3e6",
+            "Bagshot":        "#bdd7ee","Bedford":        "#ffe699","Sherlock":     "#e6ccff",
+            "Balham":         "#c6e0b4","MT Watson":      "#C65911","MT Santa Monica":"#1F6F78",
+            "MT Berners":     "#2F5597","MT Sanbarth_OML24":"#7030A0","SanJulian":  "#0F4C5C",
         }
+        # Auto-assign colours to any new vessels added via UI
+        _AUTO_PALETTE = ["#70AD47","#ED7D31","#4472C4","#FFC000","#FF0000",
+                         "#00B0F0","#7030A0","#FF69B4","#A9D18E","#548235"]
+        VESSEL_COLORS = dict(_BASE_VESSEL_COLORS)
+        _auto_i = 0
+        for _sv in st.session_state.shuttle_vessels:
+            _sn = _sv["name"]
+            if _sn not in VESSEL_COLORS:
+                VESSEL_COLORS[_sn] = _AUTO_PALETTE[_auto_i % len(_AUTO_PALETTE)]
+                _auto_i += 1
 
         # Custom colour thresholds per storage (Green < yellow_lo, Yellow = yellow_lo-red_lo, Red > red_lo)
         STORAGE_COLOR_RULES = {
