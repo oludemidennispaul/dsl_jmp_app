@@ -1,6 +1,11 @@
 [server]
 enableCORS = false
 enableXsrfProtection = false
+headless = true
 
 [browser]
 gatherUsageStats = false
+serverAddress = "localhost"
+
+[theme]
+base = "light"
