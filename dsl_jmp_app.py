@@ -27,8 +27,21 @@ def _save_sim_to_db(df, seed, inj_df=None, monthly_totals=None):
     def _compress(df_or_none):
         if df_or_none is None or (hasattr(df_or_none, "empty") and df_or_none.empty):
             return ""
-        # Convert to JSON then gzip+base64 to keep size small
-        raw = df_or_none.to_json(orient="records", date_format="iso")
+        import numpy as _np
+        _df = df_or_none.copy()
+        # Fix overflow: downcast large integers and convert Period/Timestamp cols
+        for _col in _df.columns:
+            if _pd.api.types.is_integer_dtype(_df[_col]):
+                _df[_col] = _df[_col].astype("int64").clip(-2**53, 2**53)
+            elif hasattr(_df[_col], "dt"):
+                try:
+                    _df[_col] = _df[_col].astype(str)
+                except Exception:
+                    pass
+            # Convert Period dtype to string
+            if hasattr(_df[_col], "dtype") and str(_df[_col].dtype).startswith("period"):
+                _df[_col] = _df[_col].astype(str)
+        raw = _df.to_json(orient="records", date_format="iso", default_handler=str)
         compressed = gzip.compress(raw.encode("utf-8"))
         return base64.b64encode(compressed).decode("utf-8")
 
