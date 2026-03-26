@@ -77,28 +77,33 @@ st.set_page_config(
 _qp_view = st.query_params.get("view", "")
 
 if _qp_view == "table":
-    # Load the latest simulation result — same link always shows latest run
     import pandas as _epd
-    # Load from Supabase — show detailed error if something goes wrong
-    _embed_error = None
-    try:
-        _embed_res = _load_sim_from_db()
-    except Exception as _ee:
-        _embed_res = None
-        _embed_error = str(_ee)
 
-    # Debug: show connection status
+    # ── Step 1: test Supabase connection ──────────────────────────────────────
     try:
         _sb_test = _get_supabase()
-        if _sb_test is None:
-            st.error("❌ Supabase client could not be created. Check secrets configuration.")
-            st.stop()
+        st.success("✅ Supabase connected")
     except Exception as _ste:
-        st.error(f"❌ Supabase error: {_ste}")
+        st.error(f"❌ Supabase connection failed: {_ste}")
         st.stop()
 
-    if _embed_error:
-        st.error(f"❌ Database load error: {_embed_error}")
+    # ── Step 2: load data ─────────────────────────────────────────────────────
+    try:
+        _resp = _sb_test.table("sim_results").select("*").eq("id", 1).execute()
+        st.success(f"✅ Query ran. Rows returned: {len(_resp.data)}")
+        if _resp.data:
+            st.json(_resp.data[0].get("updated_at", "no updated_at field"))
+        _embed_res = None
+        if _resp.data:
+            _row = _resp.data[0]
+            _embed_res = {
+                "df": _epd.read_json(_row["sim_df"], orient="records") if _row.get("sim_df") and _row["sim_df"] != "[]" else None,
+                "inj_df": _epd.read_json(_row["inj_df"], orient="records") if _row.get("inj_df") and _row["inj_df"] != "[]" else None,
+                "seed_used": _row.get("seed_used"),
+                "updated_at": _row.get("updated_at"),
+            }
+    except Exception as _qe:
+        st.error(f"❌ Query failed: {_qe}")
         st.stop()
 
     if _embed_res is not None:
