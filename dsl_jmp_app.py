@@ -1434,6 +1434,45 @@ elif page == "Simulation Table":
     st.markdown('<div class="page-title">Simulation Table</div>', unsafe_allow_html=True)
     st.markdown('<div class="page-subtitle">Daily output — vessel movements, stock levels and discharge events</div>', unsafe_allow_html=True)
 
+    # ── Power BI embed link button ─────────────────────────────────────────────
+    _APP_URL = "https://dsl-jmp-app.streamlit.app"  # ← your deployed URL
+    _EMBED_URL = f"{_APP_URL}/?view=table&embed=true"
+    st.markdown(f"""
+        <div style="margin-bottom:14px;">
+        <div style="font-size:12px;color:#6b7a99;margin-bottom:6px;">
+            📊 <b>Power BI Embed Link</b> — paste into Web Content visual. 
+            Always shows your latest simulation run.
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <code id="embedUrl" style="background:#f0f4ff;border:1.5px solid #c8d3ee;
+                border-radius:8px;padding:8px 14px;font-size:12px;color:#111827;flex:1;
+                min-width:200px;">{_EMBED_URL}</code>
+            <button onclick="
+                navigator.clipboard.writeText('{_EMBED_URL}').then(function(){{
+                    var btn = document.getElementById('copyBtn');
+                    btn.innerText = '✅ Copied!';
+                    btn.style.background = '#10b981';
+                    setTimeout(function(){{
+                        btn.innerText = '📋 Copy Link';
+                        btn.style.background = '#1a3fc4';
+                    }}, 2000);
+                }});"
+                id="copyBtn"
+                style="background:#1a3fc4;color:#fff;border:none;border-radius:8px;
+                    padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer;
+                    white-space:nowrap;font-family:inherit;">
+                📋 Copy Link
+            </button>
+            <a href="{_EMBED_URL}" target="_blank"
+               style="background:#fff;color:#1a3fc4;border:1.5px solid #1a3fc4;
+               border-radius:8px;padding:8px 14px;font-size:13px;font-weight:600;
+               text-decoration:none;white-space:nowrap;">
+               Open ↗
+            </a>
+        </div>
+        </div>
+    """, unsafe_allow_html=True)
+
     results = st.session_state.get("sim_results")
     if not results:
         st.info("Run the simulation from **Build my JMP → Step 3** to view the simulation table.", icon="📋")
