@@ -146,8 +146,69 @@ if _qp_view == "table":
                 f'<span style="font-size:11px;color:#6b7a99;">Seed: {_seed} &nbsp;|&nbsp; Last run: {_upd} UTC</span>'
                 f'</div>',
                 unsafe_allow_html=True)
-            _html = _disp.to_html(index=False, border=0, classes="etbl")
-            st.markdown(f'<div style="overflow:auto;max-height:95vh;">{_html}</div>', unsafe_allow_html=True)
+
+            # ── Apply colour coding ───────────────────────────────────────────
+            # Storage custom rules
+            _EMBED_STG_RULES = {
+                "Whisky Star XLV":  {"green_hi": 59500,  "yellow_hi": 71740},
+                "Westmore_Belema":  {"green_hi": 157500, "yellow_hi": 189900},
+                "Dawes Island":     {"green_hi": 45000,  "yellow_hi": 54860},
+                "Jasmine S_SOKU":   {"green_hi": 189900, "yellow_hi": 228000},
+                "Chapel_OML24":     {"green_hi": 189900, "yellow_hi": 228000},
+                "Awoba_OML24":      {"green_hi": 70000,  "yellow_hi": 84400},
+            }
+            _EMBED_VESSEL_COLORS = {
+                "Rathbone":"#f4b183","Woodstock":"#a9d18e","Laphroaig":"#9dc3e6",
+                "Bagshot":"#bdd7ee","Bedford":"#ffe699","Sherlock":"#e6ccff",
+                "Balham":"#c6e0b4","MT Watson":"#C65911","MT Santa Monica":"#1F6F78",
+                "MT Berners":"#2F5597","SanJulian":"#0F4C5C",
+            }
+            # Mother caps from data (use hard-coded fallback)
+            _EMBED_MCAPS = {"Bryanston":490000,"Alkebulan":440000,"Green Eagle":440000}
+
+            def _embed_cell_style(val, col):
+                try:
+                    v = float(val) if val not in (None,"","nan") else 0
+                except Exception:
+                    v = 0
+                sname = col.replace(" Stock","")
+                if col.endswith(" Stock") and sname in _EMBED_MCAPS:
+                    cap = _EMBED_MCAPS[sname]
+                    if v >= cap:      return "background-color:#e84545;color:white;font-weight:600"
+                    if v >= 0.7*cap:  return "background-color:#ffd966;color:black"
+                    return ""
+                if col.endswith(" Stock") and sname in _EMBED_STG_RULES:
+                    r = _EMBED_STG_RULES[sname]
+                    if v < r["green_hi"]:   return "background-color:#00B95F;color:white;font-weight:600"
+                    if v <= r["yellow_hi"]: return "background-color:#ffd966;color:black"
+                    return "background-color:#e84545;color:white;font-weight:600"
+                if col.endswith(" Stock"):
+                    # default storage rule — just yellow for mid
+                    return "background-color:#ffd966;color:black" if v > 0 else ""
+                if col.startswith("Shuttle ") or col.startswith("Discharge "):
+                    s = str(val or "")
+                    vessel = s.split("->")[0].strip() if "->" in s else s
+                    c = _EMBED_VESSEL_COLORS.get(vessel, "")
+                    return f"background-color:{c};color:black;font-weight:600" if c else ""
+                return ""
+
+            def _embed_apply(df_s):
+                styles = _epd.DataFrame("", index=df_s.index, columns=df_s.columns)
+                for col in df_s.columns:
+                    styles[col] = df_s[col].apply(lambda v: _embed_cell_style(v, col))
+                return styles
+
+            _styled_embed = (
+                _disp.style
+                .apply(_embed_apply, axis=None)
+                .format(na_rep="")
+                .hide(axis="index")
+            )
+            # Inject table CSS then render styled HTML
+            _styled_html = _styled_embed.to_html()
+            st.markdown(
+                f'<div style="overflow:auto;max-height:95vh;font-size:12px;">{_styled_html}</div>',
+                unsafe_allow_html=True)
         else:
             st.error("Simulation data is empty. Please re-run the simulation.")
     else:
