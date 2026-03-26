@@ -1,11 +1,53 @@
 import streamlit as st
 from datetime import date
+import json, os, hashlib, tempfile, pickle
 
 st.set_page_config(
     page_title="DSL JMP Simulator",
     layout="wide",
     initial_sidebar_state="expanded",
 )
+
+# ── EMBED / TABLE-ONLY MODE ───────────────────────────────────────────────────
+# When ?view=table&run_id=xxx is in the URL, show only the simulation table
+# This is the URL that gets embedded in Power BI
+_qp_view = st.query_params.get("view", "")
+
+if _qp_view == "table":
+    # Load the latest simulation result — same link always shows latest run
+    _cache_path = os.path.join(tempfile.gettempdir(), "dsl_sim_latest.pkl")
+    if os.path.exists(_cache_path):
+        try:
+            import pickle, pandas as pd
+            with open(_cache_path, "rb") as _cf:
+                _embed_res = pickle.load(_cf)
+            _embed_df = _embed_res.get("df")
+            if _embed_df is not None and not _embed_df.empty:
+                # Minimal clean table-only render — no sidebar, no nav
+                st.markdown("""<style>
+                    #MainMenu,footer,header,[data-testid="stSidebar"]{display:none!important;}
+                    .block-container{padding:0.5rem 1rem!important;max-width:100%!important;}
+                    .etbl{border-collapse:collapse;width:100%;font-size:12px;color:#111827;}
+                    .etbl th{background:#1a3fc4;color:#fff;padding:7px 10px;text-align:center;
+                        font-weight:600;white-space:nowrap;position:sticky;top:0;}
+                    .etbl td{padding:6px 10px;text-align:center;border:1px solid #e2e8f0;
+                        color:#111827;background:#fff;white-space:nowrap;}
+                    .etbl tr:nth-child(even) td{background:#f8faff;}
+                    </style>""", unsafe_allow_html=True)
+                # Drop noisy columns
+                _drop = [c for c in _embed_df.columns if c.endswith(" Prod")] + ["Month","Shuttles In Transit Names"]
+                _disp = _embed_df.drop(columns=[c for c in _drop if c in _embed_df.columns])
+                _seed = _embed_res.get("seed_used", "—")
+                st.markdown(f'<div style="font-size:13px;font-weight:700;color:#1a3fc4;margin-bottom:8px;">DSL JMP Simulation Table — Seed {_seed}</div>', unsafe_allow_html=True)
+                _html = _disp.to_html(index=False, border=0, classes="etbl")
+                st.markdown(f'<div style="overflow:auto;max-height:95vh;">{_html}</div>', unsafe_allow_html=True)
+            else:
+                st.error("No simulation data found for this run.")
+        except Exception as _e:
+            st.error(f"Could not load simulation: {_e}")
+    else:
+        st.warning("Simulation result not found or expired. Please re-run the simulation to generate a fresh link.")
+    st.stop()  # Don't render anything else
 
 # ── Session state ─────────────────────────────────────────────────────────────
 def _def(key, val):
@@ -1077,10 +1119,21 @@ Good for debugging and comparing parameter changes fairly.</div></div>''', unsaf
                     st.session_state.sim_results  = _res
                     st.session_state.sim_seed_used = _seed_val
                     st.session_state.sim_error    = None
-                    st.session_state.mc_results   = None   # clear any MC results
-                    # Capture stock init error so user can see what went wrong
+                    st.session_state.mc_results   = None
                     _sierr = _res.get("stock_init_error") if _res else None
                     st.session_state["stock_init_error"] = _sierr
+                    # ── Save result to fixed file — same link always works ─────
+                    try:
+                        import pickle, os, tempfile
+                        _save = {"df": _res.get("df"), "seed_used": _seed_val,
+                                 "inj_df": _res.get("inj_df"),
+                                 "monthly_totals": _res.get("monthly_totals")}
+                        _cpath = os.path.join(tempfile.gettempdir(), "dsl_sim_latest.pkl")
+                        with open(_cpath, "wb") as _cf:
+                            pickle.dump(_save, _cf)
+                        st.session_state["embed_ready"] = True
+                    except Exception:
+                        st.session_state["embed_ready"] = False
                     _prog.progress(100, text="Done!")
                 except Exception:
                     st.session_state.sim_error = traceback.format_exc()
@@ -1211,6 +1264,30 @@ elif page == "Dashboard":
     import pandas as pd
     st.markdown('<div class="page-title">Dashboard</div>', unsafe_allow_html=True)
     st.markdown('<div class="page-subtitle">Shuttle vessel behaviour — simulation overview</div>', unsafe_allow_html=True)
+
+    # ── Power BI embed link ────────────────────────────────────────────────────
+    if st.session_state.get("embed_ready"):
+        # Fixed permanent link — always shows latest simulation run
+        _app_url = "https://dsl-jmp-app.streamlit.app"  # ← your deployed URL
+        _embed_url = f"{_app_url}/?view=table&embed=true"
+        st.markdown(
+            f'''<div style="background:#f0f4ff;border:1.5px solid #c8d3ee;border-radius:10px;
+                padding:12px 16px;margin-bottom:12px;">
+                <div style="font-size:13px;color:#1a3fc4;font-weight:700;margin-bottom:6px;">
+                    📊 Power BI Embed Link — always shows your latest simulation</div>
+                <div style="display:flex;align-items:center;gap:8px;">
+                <code style="background:#fff;border:1px solid #dde4f8;border-radius:6px;
+                    padding:6px 12px;font-size:12px;color:#111827;flex:1;">{_embed_url}</code>
+                <a href="{_embed_url}" target="_blank"
+                   style="background:#1a3fc4;color:#fff;padding:6px 12px;border-radius:8px;
+                   font-size:12px;font-weight:600;text-decoration:none;white-space:nowrap;">
+                   Open ↗</a>
+                </div>
+                <div style="font-size:11px;color:#6b7a99;margin-top:6px;">
+                    Paste this link into Power BI Web Content visual. 
+                    Every time you run a new simulation this link auto-updates.</div>
+                </div>''',
+            unsafe_allow_html=True)
 
     results = st.session_state.get("sim_results")
 
