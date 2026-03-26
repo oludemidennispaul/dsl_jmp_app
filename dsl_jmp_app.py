@@ -21,49 +21,54 @@ def _get_supabase():
 def _save_sim_to_db(df, seed, inj_df=None, monthly_totals=None):
     """Save latest simulation result to Supabase. Upserts row with id=1."""
     sb = _get_supabase()
-    try:
-        import pandas as _pd
-        # Serialize dataframes to JSON strings
-        _df_json  = df.to_json(orient="records", date_format="iso") if df is not None else "[]"
-        _inj_json = inj_df.to_json(orient="records", date_format="iso") if inj_df is not None and not inj_df.empty else "[]"
-        _tot_json = monthly_totals.to_json(orient="records", date_format="iso") if monthly_totals is not None and not monthly_totals.empty else "[]"
-        from datetime import datetime as _dt
-        _row = {
-            "id":             1,        # always row 1 — latest run
-            "seed_used":      int(seed) if seed is not None else 0,
-            "sim_df":         _df_json,
-            "inj_df":         _inj_json,
-            "monthly_totals": _tot_json,
-            "updated_at":     _dt.utcnow().isoformat(),
-        }
-        sb.table("sim_results").upsert(_row).execute()
-        return True
-    except Exception as _e:
-        return False
+    import gzip, base64, json as _json
+    from datetime import datetime as _dt
+
+    def _compress(df_or_none):
+        if df_or_none is None or (hasattr(df_or_none, "empty") and df_or_none.empty):
+            return ""
+        # Convert to JSON then gzip+base64 to keep size small
+        raw = df_or_none.to_json(orient="records", date_format="iso")
+        compressed = gzip.compress(raw.encode("utf-8"))
+        return base64.b64encode(compressed).decode("utf-8")
+
+    _row = {
+        "id":             1,
+        "seed_used":      int(seed) if seed is not None else 0,
+        "sim_df":         _compress(df),
+        "inj_df":         _compress(inj_df),
+        "monthly_totals": _compress(monthly_totals),
+        "updated_at":     _dt.utcnow().isoformat(),
+    }
+    result = sb.table("sim_results").upsert(_row).execute()
+    return True
 
 def _load_sim_from_db():
     """Load latest simulation result from Supabase."""
-    sb = _get_supabase()
-    if sb is None:
-        return None
-    try:
-        import pandas as _pd
-        _resp = sb.table("sim_results").select("*").eq("id", 1).execute()
-        if not _resp.data:
+    import gzip, base64
+    import pandas as _pd
+
+    def _decompress(val):
+        if not val:
             return None
-        _row = _resp.data[0]
-        _df  = _pd.read_json(_row["sim_df"],  orient="records") if _row.get("sim_df")  else None
-        _inj = _pd.read_json(_row["inj_df"],  orient="records") if _row.get("inj_df")  else None
-        _tot = _pd.read_json(_row["monthly_totals"], orient="records") if _row.get("monthly_totals") else None
-        return {
-            "df":             _df,
-            "inj_df":         _inj,
-            "monthly_totals": _tot,
-            "seed_used":      _row.get("seed_used"),
-            "updated_at":     _row.get("updated_at"),
-        }
-    except Exception:
+        try:
+            raw = gzip.decompress(base64.b64decode(val.encode("utf-8"))).decode("utf-8")
+            return _pd.read_json(raw, orient="records")
+        except Exception:
+            return None
+
+    sb = _get_supabase()
+    _resp = sb.table("sim_results").select("*").eq("id", 1).execute()
+    if not _resp.data:
         return None
+    _row = _resp.data[0]
+    return {
+        "df":             _decompress(_row.get("sim_df")),
+        "inj_df":         _decompress(_row.get("inj_df")),
+        "monthly_totals": _decompress(_row.get("monthly_totals")),
+        "seed_used":      _row.get("seed_used"),
+        "updated_at":     _row.get("updated_at"),
+    }
 
 st.set_page_config(
     page_title="DSL JMP Simulator",
@@ -1216,15 +1221,14 @@ Good for debugging and comparing parameter changes fairly.</div></div>''', unsaf
                     st.session_state["stock_init_error"] = _sierr
                     # ── Save to Supabase — permanent across restarts ───────────
                     try:
-                        _saved = _save_sim_to_db(
+                        _save_sim_to_db(
                             df=_res.get("df"),
                             seed=_seed_val,
                             inj_df=_res.get("inj_df"),
                             monthly_totals=_res.get("monthly_totals"),
                         )
-                        st.session_state["embed_ready"] = _saved
-                        if not _saved:
-                            st.warning("⚠️ Simulation ran but could not save to database. Check Supabase secrets.", icon="⚠️")
+                        st.session_state["embed_ready"] = True
+                        st.toast("✅ Saved to database — embed link updated", icon="✅")
                     except Exception as _dbe:
                         st.session_state["embed_ready"] = False
                         st.warning(f"⚠️ Database save failed: {_dbe}", icon="⚠️")
