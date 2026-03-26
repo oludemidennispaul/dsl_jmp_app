@@ -58,7 +58,7 @@ def _save_sim_to_db(df, seed, inj_df=None, monthly_totals=None):
 
 def _load_sim_from_db():
     """Load latest simulation result from Supabase."""
-    import gzip, base64
+    import gzip, base64, json as _json
     import pandas as _pd
 
     def _decompress(val):
@@ -66,8 +66,12 @@ def _load_sim_from_db():
             return None
         try:
             raw = gzip.decompress(base64.b64decode(val.encode("utf-8"))).decode("utf-8")
-            return _pd.read_json(raw, orient="records")
-        except Exception:
+            # Parse JSON manually then build DataFrame to avoid read_json type issues
+            records = _json.loads(raw)
+            if not records:
+                return _pd.DataFrame()
+            return _pd.DataFrame(records)
+        except Exception as _de:
             return None
 
     sb = _get_supabase()
@@ -107,21 +111,12 @@ if _qp_view == "table":
 
     # ── Step 2: load data ─────────────────────────────────────────────────────
     try:
-        _resp = _sb_test.table("sim_results").select("*").eq("id", 1).execute()
-        st.success(f"✅ Query ran. Rows returned: {len(_resp.data)}")
-        if _resp.data:
-            st.json(_resp.data[0].get("updated_at", "no updated_at field"))
-        _embed_res = None
-        if _resp.data:
-            _row = _resp.data[0]
-            _embed_res = {
-                "df": _epd.read_json(_row["sim_df"], orient="records") if _row.get("sim_df") and _row["sim_df"] != "[]" else None,
-                "inj_df": _epd.read_json(_row["inj_df"], orient="records") if _row.get("inj_df") and _row["inj_df"] != "[]" else None,
-                "seed_used": _row.get("seed_used"),
-                "updated_at": _row.get("updated_at"),
-            }
+        _embed_res = _load_sim_from_db()
+        if _embed_res is None:
+            st.info("No simulation has been run yet. Run a simulation from the app and this page will update automatically.", icon="📋")
+            st.stop()
     except Exception as _qe:
-        st.error(f"❌ Query failed: {_qe}")
+        st.error(f"❌ Load failed: {_qe}")
         st.stop()
 
     if _embed_res is not None:
