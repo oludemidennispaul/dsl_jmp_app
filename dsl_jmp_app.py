@@ -15,7 +15,8 @@ _qp_view = st.query_params.get("view", "")
 
 if _qp_view == "table":
     # Load the latest simulation result — same link always shows latest run
-    _cache_path = os.path.join(tempfile.gettempdir(), "dsl_sim_latest.pkl")
+    _app_dir = os.path.dirname(os.path.abspath(__file__))
+    _cache_path = os.path.join(_app_dir, "dsl_sim_latest.pkl")
     if os.path.exists(_cache_path):
         try:
             import pickle, pandas as pd
@@ -1122,17 +1123,19 @@ Good for debugging and comparing parameter changes fairly.</div></div>''', unsaf
                     st.session_state.mc_results   = None
                     _sierr = _res.get("stock_init_error") if _res else None
                     st.session_state["stock_init_error"] = _sierr
-                    # ── Save result to fixed file — same link always works ─────
+                    # ── Save result to app directory — persists across sessions ──
                     try:
-                        import pickle, os, tempfile
+                        import pickle, os
+                        # Save in same folder as this script — persists on Streamlit Cloud
+                        _app_dir = os.path.dirname(os.path.abspath(__file__))
+                        _cpath = os.path.join(_app_dir, "dsl_sim_latest.pkl")
                         _save = {"df": _res.get("df"), "seed_used": _seed_val,
                                  "inj_df": _res.get("inj_df"),
                                  "monthly_totals": _res.get("monthly_totals")}
-                        _cpath = os.path.join(tempfile.gettempdir(), "dsl_sim_latest.pkl")
                         with open(_cpath, "wb") as _cf:
                             pickle.dump(_save, _cf)
                         st.session_state["embed_ready"] = True
-                    except Exception:
+                    except Exception as _se:
                         st.session_state["embed_ready"] = False
                     _prog.progress(100, text="Done!")
                 except Exception:
@@ -1241,6 +1244,17 @@ and surface the <strong>top 5 best outcomes</strong>.</div></div>''', unsafe_all
                     # Default sim_results = rank #1
                     st.session_state.sim_results  = _top5_results[0]
                     st.session_state.sim_seed_used = _top5_seeds[0]
+                    # Save best MC result so embed link always has latest
+                    try:
+                        import pickle as _pk, os as _os
+                        _app_dir = _os.path.dirname(_os.path.abspath(__file__))
+                        _cpath = _os.path.join(_app_dir, "dsl_sim_latest.pkl")
+                        _sv = {"df": _top5_results[0].get("df"), "seed_used": _top5_seeds[0],
+                               "inj_df": _top5_results[0].get("inj_df"),
+                               "monthly_totals": _top5_results[0].get("monthly_totals")}
+                        with open(_cpath, "wb") as _cf: _pk.dump(_sv, _cf)
+                        st.session_state["embed_ready"] = True
+                    except Exception: pass
                     st.session_state.sim_error    = None
                     _prog.progress(100, text=f"Done! Best seed = {_top5_seeds[0]}")
 
