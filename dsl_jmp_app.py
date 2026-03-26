@@ -204,10 +204,20 @@ if _qp_view == "table":
                 .format(na_rep="")
                 .hide(axis="index")
             )
-            # Inject table CSS then render styled HTML
+            # Render with same clean CSS as main sim table
             _styled_html = _styled_embed.to_html()
+            st.markdown("""<style>
+                .etbl-wrap table{border-collapse:collapse;width:max-content;font-size:12px;}
+                .etbl-wrap th{background:#1a3fc4!important;color:#fff!important;padding:7px 10px;
+                    text-align:center;font-weight:600;white-space:nowrap;position:sticky;top:0;z-index:2;}
+                .etbl-wrap td{padding:6px 10px;text-align:center;border:1px solid #e2e8f0;
+                    white-space:nowrap;color:#111827!important;}
+                .etbl-wrap td:first-child{color:#111827!important;font-weight:600;
+                    background:#f0f4ff!important;position:sticky;left:0;z-index:1;}
+                .etbl-wrap tr:nth-child(even) td{filter:brightness(0.97);}
+                </style>""", unsafe_allow_html=True)
             st.markdown(
-                f'<div style="overflow:auto;max-height:95vh;font-size:12px;">{_styled_html}</div>',
+                f'<div class="etbl-wrap" style="overflow:auto;max-height:95vh;border-radius:10px;border:1.5px solid #e8edf8;">{_styled_html}</div>',
                 unsafe_allow_html=True)
         else:
             st.error("Simulation data is empty. Please re-run the simulation.")
