@@ -2,6 +2,66 @@ import streamlit as st
 from datetime import date
 import json, os, hashlib, tempfile, pickle
 
+# ── Supabase persistence helpers ──────────────────────────────────────────────
+def _get_supabase():
+    """Return a Supabase client using credentials from st.secrets."""
+    try:
+        from supabase import create_client
+        url  = st.secrets["supabase"]["url"]
+        key  = st.secrets["supabase"]["key"]
+        return create_client(url, key)
+    except Exception:
+        return None
+
+def _save_sim_to_db(df, seed, inj_df=None, monthly_totals=None):
+    """Save latest simulation result to Supabase. Upserts row with id=1."""
+    sb = _get_supabase()
+    if sb is None:
+        return False
+    try:
+        import pandas as _pd
+        # Serialize dataframes to JSON strings
+        _df_json  = df.to_json(orient="records", date_format="iso") if df is not None else "[]"
+        _inj_json = inj_df.to_json(orient="records", date_format="iso") if inj_df is not None and not inj_df.empty else "[]"
+        _tot_json = monthly_totals.to_json(orient="records", date_format="iso") if monthly_totals is not None and not monthly_totals.empty else "[]"
+        from datetime import datetime as _dt
+        _row = {
+            "id":             1,        # always row 1 — latest run
+            "seed_used":      int(seed) if seed is not None else 0,
+            "sim_df":         _df_json,
+            "inj_df":         _inj_json,
+            "monthly_totals": _tot_json,
+            "updated_at":     _dt.utcnow().isoformat(),
+        }
+        sb.table("sim_results").upsert(_row).execute()
+        return True
+    except Exception as _e:
+        return False
+
+def _load_sim_from_db():
+    """Load latest simulation result from Supabase."""
+    sb = _get_supabase()
+    if sb is None:
+        return None
+    try:
+        import pandas as _pd
+        _resp = sb.table("sim_results").select("*").eq("id", 1).execute()
+        if not _resp.data:
+            return None
+        _row = _resp.data[0]
+        _df  = _pd.read_json(_row["sim_df"],  orient="records") if _row.get("sim_df")  else None
+        _inj = _pd.read_json(_row["inj_df"],  orient="records") if _row.get("inj_df")  else None
+        _tot = _pd.read_json(_row["monthly_totals"], orient="records") if _row.get("monthly_totals") else None
+        return {
+            "df":             _df,
+            "inj_df":         _inj,
+            "monthly_totals": _tot,
+            "seed_used":      _row.get("seed_used"),
+            "updated_at":     _row.get("updated_at"),
+        }
+    except Exception:
+        return None
+
 st.set_page_config(
     page_title="DSL JMP Simulator",
     layout="wide",
@@ -15,40 +75,43 @@ _qp_view = st.query_params.get("view", "")
 
 if _qp_view == "table":
     # Load the latest simulation result — same link always shows latest run
-    _app_dir = os.path.dirname(os.path.abspath(__file__))
-    _cache_path = os.path.join(_app_dir, "dsl_sim_latest.pkl")
-    if os.path.exists(_cache_path):
-        try:
-            import pickle, pandas as pd
-            with open(_cache_path, "rb") as _cf:
-                _embed_res = pickle.load(_cf)
-            _embed_df = _embed_res.get("df")
-            if _embed_df is not None and not _embed_df.empty:
-                # Minimal clean table-only render — no sidebar, no nav
-                st.markdown("""<style>
-                    #MainMenu,footer,header,[data-testid="stSidebar"]{display:none!important;}
-                    .block-container{padding:0.5rem 1rem!important;max-width:100%!important;}
-                    .etbl{border-collapse:collapse;width:100%;font-size:12px;color:#111827;}
-                    .etbl th{background:#1a3fc4;color:#fff;padding:7px 10px;text-align:center;
-                        font-weight:600;white-space:nowrap;position:sticky;top:0;}
-                    .etbl td{padding:6px 10px;text-align:center;border:1px solid #e2e8f0;
-                        color:#111827;background:#fff;white-space:nowrap;}
-                    .etbl tr:nth-child(even) td{background:#f8faff;}
-                    </style>""", unsafe_allow_html=True)
-                # Drop noisy columns
-                _drop = [c for c in _embed_df.columns if c.endswith(" Prod")] + ["Month","Shuttles In Transit Names"]
-                _disp = _embed_df.drop(columns=[c for c in _drop if c in _embed_df.columns])
-                _seed = _embed_res.get("seed_used", "—")
-                st.markdown(f'<div style="font-size:13px;font-weight:700;color:#1a3fc4;margin-bottom:8px;">DSL JMP Simulation Table — Seed {_seed}</div>', unsafe_allow_html=True)
-                _html = _disp.to_html(index=False, border=0, classes="etbl")
-                st.markdown(f'<div style="overflow:auto;max-height:95vh;">{_html}</div>', unsafe_allow_html=True)
-            else:
-                st.error("No simulation data found for this run.")
-        except Exception as _e:
-            st.error(f"Could not load simulation: {_e}")
+    import pandas as _epd
+    # Load from Supabase — persists permanently across app restarts
+    _embed_res = _load_sim_from_db()
+    if _embed_res is not None:
+        _embed_df = _embed_res.get("df")
+        if _embed_df is not None and not _embed_df.empty:
+            st.markdown("""<style>
+                #MainMenu,footer,header,[data-testid="stSidebar"]{display:none!important;}
+                [data-testid="stToolbar"]{display:none!important;}
+                .block-container{padding:0.3rem 0.8rem!important;max-width:100%!important;}
+                .etbl{border-collapse:collapse;width:100%;font-size:12px;color:#111827;}
+                .etbl th{background:#1a3fc4;color:#fff;padding:7px 10px;text-align:center;
+                    font-weight:600;white-space:nowrap;position:sticky;top:0;z-index:2;}
+                .etbl td{padding:6px 10px;text-align:center;border:1px solid #e2e8f0;
+                    color:#111827!important;background:#fff;white-space:nowrap;}
+                .etbl tr:nth-child(even) td{background:#f8faff;}
+                .etbl td:first-child{font-weight:600;background:#f0f4ff!important;
+                    position:sticky;left:0;z-index:1;}
+                </style>""", unsafe_allow_html=True)
+            _drop = [c for c in _embed_df.columns if c.endswith(" Prod")] + ["Month","Shuttles In Transit Names"]
+            _disp = _embed_df.drop(columns=[c for c in _drop if c in _embed_df.columns])
+            _seed = _embed_res.get("seed_used", "—")
+            _upd  = _embed_res.get("updated_at", "")[:16].replace("T"," ") if _embed_res.get("updated_at") else ""
+            st.markdown(
+                f'<div style="display:flex;align-items:center;justify-content:space-between;'
+                f'padding:6px 0 8px;border-bottom:2px solid #1a3fc4;margin-bottom:8px;">'
+                f'<span style="font-size:14px;font-weight:800;color:#1a3fc4;">DSL JMP — Simulation Table</span>'
+                f'<span style="font-size:11px;color:#6b7a99;">Seed: {_seed} &nbsp;|&nbsp; Last run: {_upd} UTC</span>'
+                f'</div>',
+                unsafe_allow_html=True)
+            _html = _disp.to_html(index=False, border=0, classes="etbl")
+            st.markdown(f'<div style="overflow:auto;max-height:95vh;">{_html}</div>', unsafe_allow_html=True)
+        else:
+            st.error("Simulation data is empty. Please re-run the simulation.")
     else:
-        st.warning("Simulation result not found or expired. Please re-run the simulation to generate a fresh link.")
-    st.stop()  # Don't render anything else
+        st.info("No simulation has been run yet. Run a simulation from the app and this page will update automatically.", icon="📋")
+    st.stop()
 
 # ── Session state ─────────────────────────────────────────────────────────────
 def _def(key, val):
@@ -1123,20 +1186,14 @@ Good for debugging and comparing parameter changes fairly.</div></div>''', unsaf
                     st.session_state.mc_results   = None
                     _sierr = _res.get("stock_init_error") if _res else None
                     st.session_state["stock_init_error"] = _sierr
-                    # ── Save result to app directory — persists across sessions ──
-                    try:
-                        import pickle, os
-                        # Save in same folder as this script — persists on Streamlit Cloud
-                        _app_dir = os.path.dirname(os.path.abspath(__file__))
-                        _cpath = os.path.join(_app_dir, "dsl_sim_latest.pkl")
-                        _save = {"df": _res.get("df"), "seed_used": _seed_val,
-                                 "inj_df": _res.get("inj_df"),
-                                 "monthly_totals": _res.get("monthly_totals")}
-                        with open(_cpath, "wb") as _cf:
-                            pickle.dump(_save, _cf)
-                        st.session_state["embed_ready"] = True
-                    except Exception as _se:
-                        st.session_state["embed_ready"] = False
+                    # ── Save to Supabase — permanent across restarts ───────────
+                    _saved = _save_sim_to_db(
+                        df=_res.get("df"),
+                        seed=_seed_val,
+                        inj_df=_res.get("inj_df"),
+                        monthly_totals=_res.get("monthly_totals"),
+                    )
+                    st.session_state["embed_ready"] = _saved
                     _prog.progress(100, text="Done!")
                 except Exception:
                     st.session_state.sim_error = traceback.format_exc()
@@ -1244,17 +1301,14 @@ and surface the <strong>top 5 best outcomes</strong>.</div></div>''', unsafe_all
                     # Default sim_results = rank #1
                     st.session_state.sim_results  = _top5_results[0]
                     st.session_state.sim_seed_used = _top5_seeds[0]
-                    # Save best MC result so embed link always has latest
-                    try:
-                        import pickle as _pk, os as _os
-                        _app_dir = _os.path.dirname(_os.path.abspath(__file__))
-                        _cpath = _os.path.join(_app_dir, "dsl_sim_latest.pkl")
-                        _sv = {"df": _top5_results[0].get("df"), "seed_used": _top5_seeds[0],
-                               "inj_df": _top5_results[0].get("inj_df"),
-                               "monthly_totals": _top5_results[0].get("monthly_totals")}
-                        with open(_cpath, "wb") as _cf: _pk.dump(_sv, _cf)
-                        st.session_state["embed_ready"] = True
-                    except Exception: pass
+                    # Save best MC result to Supabase
+                    _mc_saved = _save_sim_to_db(
+                        df=_top5_results[0].get("df"),
+                        seed=_top5_seeds[0],
+                        inj_df=_top5_results[0].get("inj_df"),
+                        monthly_totals=_top5_results[0].get("monthly_totals"),
+                    )
+                    st.session_state["embed_ready"] = _mc_saved
                     st.session_state.sim_error    = None
                     _prog.progress(100, text=f"Done! Best seed = {_top5_seeds[0]}")
 
