@@ -7,17 +7,20 @@ def _get_supabase():
     """Return a Supabase client using credentials from st.secrets."""
     try:
         from supabase import create_client
-        url  = st.secrets["supabase"]["url"]
-        key  = st.secrets["supabase"]["key"]
-        return create_client(url, key)
-    except Exception:
-        return None
+    except ImportError:
+        raise RuntimeError("supabase package not installed — add supabase>=2.0.0 to requirements.txt")
+    try:
+        url = st.secrets["supabase"]["url"]
+        key = st.secrets["supabase"]["key"]
+    except KeyError:
+        raise RuntimeError("Supabase credentials missing from st.secrets — add [supabase] url and key in Streamlit Cloud → Settings → Secrets")
+    if not url or not key:
+        raise RuntimeError("Supabase url or key is empty in st.secrets")
+    return create_client(url, key)
 
 def _save_sim_to_db(df, seed, inj_df=None, monthly_totals=None):
     """Save latest simulation result to Supabase. Upserts row with id=1."""
     sb = _get_supabase()
-    if sb is None:
-        return False
     try:
         import pandas as _pd
         # Serialize dataframes to JSON strings
@@ -76,8 +79,28 @@ _qp_view = st.query_params.get("view", "")
 if _qp_view == "table":
     # Load the latest simulation result — same link always shows latest run
     import pandas as _epd
-    # Load from Supabase — persists permanently across app restarts
-    _embed_res = _load_sim_from_db()
+    # Load from Supabase — show detailed error if something goes wrong
+    _embed_error = None
+    try:
+        _embed_res = _load_sim_from_db()
+    except Exception as _ee:
+        _embed_res = None
+        _embed_error = str(_ee)
+
+    # Debug: show connection status
+    try:
+        _sb_test = _get_supabase()
+        if _sb_test is None:
+            st.error("❌ Supabase client could not be created. Check secrets configuration.")
+            st.stop()
+    except Exception as _ste:
+        st.error(f"❌ Supabase error: {_ste}")
+        st.stop()
+
+    if _embed_error:
+        st.error(f"❌ Database load error: {_embed_error}")
+        st.stop()
+
     if _embed_res is not None:
         _embed_df = _embed_res.get("df")
         if _embed_df is not None and not _embed_df.empty:
@@ -1187,13 +1210,19 @@ Good for debugging and comparing parameter changes fairly.</div></div>''', unsaf
                     _sierr = _res.get("stock_init_error") if _res else None
                     st.session_state["stock_init_error"] = _sierr
                     # ── Save to Supabase — permanent across restarts ───────────
-                    _saved = _save_sim_to_db(
-                        df=_res.get("df"),
-                        seed=_seed_val,
-                        inj_df=_res.get("inj_df"),
-                        monthly_totals=_res.get("monthly_totals"),
-                    )
-                    st.session_state["embed_ready"] = _saved
+                    try:
+                        _saved = _save_sim_to_db(
+                            df=_res.get("df"),
+                            seed=_seed_val,
+                            inj_df=_res.get("inj_df"),
+                            monthly_totals=_res.get("monthly_totals"),
+                        )
+                        st.session_state["embed_ready"] = _saved
+                        if not _saved:
+                            st.warning("⚠️ Simulation ran but could not save to database. Check Supabase secrets.", icon="⚠️")
+                    except Exception as _dbe:
+                        st.session_state["embed_ready"] = False
+                        st.warning(f"⚠️ Database save failed: {_dbe}", icon="⚠️")
                     _prog.progress(100, text="Done!")
                 except Exception:
                     st.session_state.sim_error = traceback.format_exc()
